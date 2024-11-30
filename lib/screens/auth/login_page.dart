@@ -22,7 +22,6 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  String? _error;
   late Dio _dio;
 
   @override
@@ -32,58 +31,24 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _handleLogin() async {
-    setState(() {
-      _error = null;
-    });
-
     try {
-      print('Login request data: ${
-        {
-          "email": _emailController.text,
-          "password": _passwordController.text,
-        }
-      }');
-
       final response = await _dio.post('/members/login', data: {
         "email": _emailController.text,
         "password": _passwordController.text,
       });
 
-      if (response.statusCode == 200) {
-        final apiResponse = ApiResponse.fromJson(
-          response.data,
-          (json) => json as Map<String, dynamic>,
-        );
+      final apiResponse = ApiResponse.fromJson(
+        response.data,
+        (json) => json as Map<String, dynamic>,
+      );
 
-        if (apiResponse.success) {
-          // TODO: Store tokens in secure storage
-          final tokens = apiResponse.data;
-
-          if (mounted) {
-            Navigator.pushReplacementNamed(context, '/home');
-          }
-        } else {
-          setState(() {
-            _error =
-                apiResponse.message ?? AppLocalizations.of(context)!.loginFail;
-          });
-        }
-      }
-    } on DioException catch (e) {
-      if (mounted) {
-        final errorMessage = e.response?.data?['message'] ??
-            AppLocalizations.of(context)!.networkError;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-          ),
-        );
+      if (mounted && apiResponse.success) {
+        // TODO: Store tokens in secure storage
+        final tokens = apiResponse.data;
+        Navigator.pushReplacementNamed(context, '/home');
       }
     } catch (e) {
-      setState(() {
-        _error = AppLocalizations.of(context)!.loginFail;
-      });
+      // 에러 처리는 dio_service에서 처리됨
     }
   }
 
@@ -105,13 +70,6 @@ class _LoginPageState extends State<LoginPage> {
           obscureText: true,
           required: true,
         ),
-        if (_error != null) ...[
-          const SizedBox(height: 8),
-          Text(
-            _error!,
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
-          ),
-        ],
         const SizedBox(height: 24),
         FilledButton(
           onPressed: _handleLogin,

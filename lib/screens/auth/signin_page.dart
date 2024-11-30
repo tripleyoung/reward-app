@@ -29,7 +29,6 @@ class _SignInPageState extends State<SignInPage> {
   final _passwordController = TextEditingController();
   final _nicknameController = TextEditingController();
   final _verificationCodeController = TextEditingController();
-  String? _error;
   Timer? _timer;
   int _timeLeft = 0;
   late Dio _dio;
@@ -175,13 +174,6 @@ class _SignInPageState extends State<SignInPage> {
             label: AppLocalizations.of(context)!.nicknameLabel,
             required: true,
           ),
-          if (_error != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              _error!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ],
           const SizedBox(height: 24),
           FilledButton(
             onPressed: _handleSubmit,
@@ -201,9 +193,12 @@ class _SignInPageState extends State<SignInPage> {
 
   Future<void> _handleEmailSend() async {
     if (_emailController.text.isEmpty) {
-      setState(() {
-        _error = AppLocalizations.of(context)!.emailRequired;
-      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.emailRequired),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
@@ -219,28 +214,11 @@ class _SignInPageState extends State<SignInPage> {
         (json) => null,
       );
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(apiResponse.message ?? AppLocalizations.of(context)!.emailSendSuccess),
-            backgroundColor: apiResponse.success ? Colors.green : Colors.red,
-          ),
-        );
-
-        if (apiResponse.success) {
-          _startTimer();  // 타이머 시작
-        }
+      if (mounted && apiResponse.success) {
+        _startTimer();
       }
-    } on DioException catch (e) {
-      if (mounted) {
-        final errorMessage = e.response?.data?['message'] ?? AppLocalizations.of(context)!.emailSendFail;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    } catch (e) {
+      // 에러 처리는 dio_service에서 처리됨
     }
   }
 
@@ -258,35 +236,13 @@ class _SignInPageState extends State<SignInPage> {
         (json) => json as bool,
       );
 
-      if (mounted) {
-        if (apiResponse.success && apiResponse.data == true) {
-          setState(() {
-            _isEmailVerified = true;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(AppLocalizations.of(context)!.emailVerifySuccess),
-              backgroundColor: Colors.green,
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(AppLocalizations.of(context)!.emailVerifyFail),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+      if (mounted && apiResponse.success && apiResponse.data == true) {
+        setState(() {
+          _isEmailVerified = true;
+        });
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.emailVerifyFail),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      // 에러 처리는 dio_service에서 처리됨
     }
   }
 
@@ -295,6 +251,7 @@ class _SignInPageState extends State<SignInPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.emailVerificationRequired),
+          backgroundColor: Colors.red,
         ),
       );
       return;
@@ -314,26 +271,12 @@ class _SignInPageState extends State<SignInPage> {
           (json) => json as int,
         );
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(apiResponse.message ?? AppLocalizations.of(context)!.signupSuccess),
-            ),
-          );
-
-          if (apiResponse.success) {
-            final currentLocale = Localizations.localeOf(context).languageCode;
-            context.go('/$currentLocale/login');
-          }
+        if (mounted && apiResponse.success) {
+          final currentLocale = Localizations.localeOf(context).languageCode;
+          context.go('/$currentLocale/login');
         }
-      } on DioException catch (e) {
-        setState(() {
-          _error = e.response?.data?['message'] ?? AppLocalizations.of(context)!.signupFail;
-        });
       } catch (e) {
-        setState(() {
-          _error = AppLocalizations.of(context)!.signupFail;
-        });
+        // 에러 처리는 dio_service에서 처리됨
       }
     }
   }

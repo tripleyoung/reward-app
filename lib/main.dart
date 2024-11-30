@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -10,8 +11,17 @@ import 'providers/auth_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // 디버그 모드일 때 로그 레벨 설정
+  if (kDebugMode) {
+    debugPrint = (String? message, {int? wrapWidth}) {
+      if (message != null) {
+        print('\x1B[33m$message\x1B[0m'); // 노란색으로 출력
+      }
+    };
+  }
+  
   final authProvider = AuthProvider();
-  await authProvider.loadAuthState();  // 초기 상태 로드
+  await authProvider.loadAuthState();
 
   runApp(
     MultiProvider(
