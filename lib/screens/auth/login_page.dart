@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../../config/app_config.dart';
 import '../../constants/styles.dart';
+import '../../models/api_response.dart';
 import '../../widgets/common/filled_text_field.dart';
+import 'package:dio/dio.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -14,6 +17,7 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   String? _error;
+  final _dio = Dio(BaseOptions(baseUrl: AppConfig.apiBaseUrl));
 
   void _handleLogin() async {
     setState(() {
@@ -21,15 +25,34 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      // TODO: API 로그인 구현
-      // final response = await apiClient.post("/auth/login", {
-      //   "userId": _emailController.text,
-      //   "userPassword": _passwordController.text,
-      // });
+      final response = await _dio.post('/members/login', data: {
+        "email": _emailController.text,
+        "password": _passwordController.text,
+      });
 
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+      if (response.statusCode == 200) {
+        final apiResponse = ApiResponse.fromJson(
+          response.data,
+          (json) => json as Map<String, dynamic>,
+        );
+
+        if (apiResponse.success) {
+          // TODO: Store tokens in secure storage
+          final tokens = apiResponse.data;
+          
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, '/home');
+          }
+        } else {
+          setState(() {
+            _error = apiResponse.message ?? "로그인에 실패했습니다.";
+          });
+        }
       }
+    } on DioException catch (e) {
+      setState(() {
+        _error = e.response?.data?['message'] ?? "로그인에 실패했습니다.";
+      });
     } catch (e) {
       setState(() {
         _error = "로그인에 실패했습니다.";

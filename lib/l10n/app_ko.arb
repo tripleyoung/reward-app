@@ -1,0 +1,34 @@
+{
+  "appTitle": "리워드",
+  
+  "@login": {
+    "description": "로그인 관련 문구"
+  },
+  "loginTitle": "로그인",
+  "emailLabel": "이메일",
+  "passwordLabel": "비밀번호",
+  "loginButton": "로그인",
+  "signInWithGoogle": "구글로 로그인",
+  "noAccount": "계정이 없으신가요?",
+  "signUpButton": "회원가입",
+  
+  "@signup": {
+    "description": "회원가입 관련 문구"
+  },
+  "signUpTitle": "회원가입",
+  "nameLabel": "이름",
+  "nicknameLabel": "닉네임",
+  "verifyEmailButton": "이메일 인증",
+  "verificationCodeLabel": "인증 코드",
+  "verifyCodeButton": "인증 확인",
+  
+  "@errors": {
+    "description": "에러 메시지"
+  },
+  "invalidEmail": "올바른 이메일 형식이 아닙니다",
+  "invalidPassword": "비밀번호는 8자 이상이어야 합니다",
+  "emailRequired": "이메일을 입력해주세요",
+  "passwordRequired": "비밀번호를 입력해주세요",
+  "nameRequired": "이름을 입력해주세요",
+  "nicknameRequired": "닉네임을 입력해주세요"
+} 

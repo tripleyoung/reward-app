@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../../config/app_config.dart';
 import '../../constants/styles.dart';
+import '../../models/api_response.dart';
 import '../../widgets/common/filled_text_field.dart';
+import 'package:dio/dio.dart';
+import 'dart:async';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -17,9 +21,52 @@ class _SignInPageState extends State<SignInPage> {
   final _passwordController = TextEditingController();
   final _nicknameController = TextEditingController();
   final _verificationCodeController = TextEditingController();
+  final _dio = Dio(BaseOptions(baseUrl: AppConfig.apiBaseUrl));
 
   bool _isEmailVerified = false;
   String? _error;
+
+  Timer? _timer;
+  int _timeLeft = 0; // 남은 시간(초)
+  static const int _validityDuration = 300; // 5분 = 300초
+
+  @override
+  void dispose() {
+    // 타이머 정리
+    _timer?.cancel();
+
+    // 컨트롤러들 정리
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _nicknameController.dispose();
+    _verificationCodeController.dispose();
+
+    super.dispose();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    setState(() {
+      _timeLeft = _validityDuration;
+    });
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        if (_timeLeft > 0) {
+          _timeLeft--;
+        } else {
+          timer.cancel();
+        }
+      });
+    });
+  }
+
+  String get _timeLeftString {
+    final minutes = (_timeLeft / 60).floor();
+    final seconds = _timeLeft % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
 
   Future<void> _handleEmailSend() async {
     if (_emailController.text.isEmpty) {
@@ -29,34 +76,128 @@ class _SignInPageState extends State<SignInPage> {
       return;
     }
 
+    setState(() {
+      _error = null;
+    });
+
     try {
-      // TODO: 이메일 발송 API 연동
-      // await apiClient.post('/api/v1/email/send', {
-      //   email: _emailController.text,
-      // });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('인증 코드가 발송되었습니다.')),
+      print('[DEBUG] Sending email to: ${_emailController.text}');
+
+      final response = await _dio.post(
+        '/members/verify/send',
+        queryParameters: {
+          'email': _emailController.text,
+        },
       );
+
+      print('[DEBUG] Response received:');
+      print('[DEBUG] Status code: ${response.statusCode}');
+      print('[DEBUG] Response data: ${response.data}');
+
+      // null check 추가
+      if (response.data == null) {
+        print('[DEBUG] Response data is null');
+        throw Exception('Response data is null');
+      }
+
+      final apiResponse = ApiResponse.fromJson(
+        response.data,
+        (json) => null,
+      );
+
+      print('[DEBUG] API Response:');
+      print('[DEBUG] Success: ${apiResponse.success}');
+      print('[DEBUG] Message: ${apiResponse.message}');
+
+      if (mounted) {
+        // success 여부와 관계없이 서버에서 온 메시지를 표시
+        final message = apiResponse.message ?? '인증 코드가 발송되었습니다.';
+        print('[DEBUG] Showing snackbar with message: $message');
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: apiResponse.success ? Colors.green : Colors.red,
+          ),
+        );
+
+        // 에러 메시지는 success가 false일 때만 설정
+        if (!apiResponse.success) {
+          setState(() {
+            _error = message;
+          });
+        }
+
+        if (apiResponse.success) {
+          _startTimer(); // 타이머 시작
+        }
+      }
+    } on DioException catch (e) {
+      print('[DEBUG] DioException caught:');
+      print('[DEBUG] Error type: ${e.type}');
+      print('[DEBUG] Error message: ${e.message}');
+      print('[DEBUG] Response data: ${e.response?.data}');
+
+      if (mounted) {
+        final errorMessage = e.response?.data?['message'] ?? "이메일 발송에 실패했습니다.";
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() {
+          _error = errorMessage;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _error = "이메일 발송에 실패했습니다.";
-      });
+      print('[DEBUG] General exception caught:');
+      print('[DEBUG] Error: $e');
+
+      if (mounted) {
+        const errorMessage = "이메일 발송에 실패했습니다.";
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() {
+          _error = errorMessage;
+        });
+      }
     }
   }
 
   Future<void> _handleCodeVerification() async {
     try {
-      // TODO: 인증 코드 확인 API 연동
-      // final response = await apiClient.post('/api/v1/email/verify', {
-      //   email: _emailController.text,
-      //   verifyCode: _verificationCodeController.text,
-      // });
-      setState(() {
-        _isEmailVerified = true;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('이메일 인증이 완료되었습니다.')),
+      final response = await _dio.post(
+        '/members/verify/check',
+        queryParameters: {
+          'email': _emailController.text,
+          'code': _verificationCodeController.text,
+        },
       );
+
+      if (response.statusCode == 200) {
+        final apiResponse = ApiResponse.fromJson(
+          response.data,
+          (json) => json as bool,
+        );
+
+        if (apiResponse.success && apiResponse.data == true) {
+          setState(() {
+            _isEmailVerified = true;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(apiResponse.message ?? '이메일 인증이 완료되었습니다.')),
+          );
+        } else {
+          setState(() {
+            _error = "인증에 실패했습니다.";
+          });
+        }
+      }
     } catch (e) {
       setState(() {
         _error = "인증에 실패했습니다.";
@@ -74,17 +215,33 @@ class _SignInPageState extends State<SignInPage> {
 
     if (_formKey.currentState!.validate()) {
       try {
-        // TODO: 회원가입 API 연동
-        // final response = await apiClient.post('/api/v1/user/join', {
-        //   userName: _nameController.text,
-        //   userId: _emailController.text,
-        //   userPassword: _passwordController.text,
-        //   userNickname: _nicknameController.text,
-        // });
+        final response = await _dio.post('/members/signup', data: {
+          "name": _nameController.text,
+          "email": _emailController.text,
+          "password": _passwordController.text,
+          "nickname": _nicknameController.text,
+        });
 
-        if (mounted) {
-          Navigator.pushReplacementNamed(context, '/login');
+        if (response.statusCode == 200) {
+          final apiResponse = ApiResponse.fromJson(
+            response.data,
+            (json) => json as int,
+          );
+
+          if (apiResponse.success) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                    content: Text(apiResponse.message ?? '회원가입이 완료되었습니다.')),
+              );
+              Navigator.pushReplacementNamed(context, '/login');
+            }
+          }
         }
+      } on DioException catch (e) {
+        setState(() {
+          _error = e.response?.data?['message'] ?? "회원가입에 실패했습니다.";
+        });
       } catch (e) {
         setState(() {
           _error = "회원가입에 실패했습니다.";
@@ -140,32 +297,7 @@ class _SignInPageState extends State<SignInPage> {
             ],
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: FilledTextField(
-                  controller: _verificationCodeController,
-                  label: '인증번호',
-                  required: true,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _handleCodeVerification,
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 0),
-                    minimumSize: Size.fromHeight(kElementHeight),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(kBorderRadius),
-                    ),
-                  ),
-                  child: const Text('인증확인'),
-                ),
-              ),
-            ],
-          ),
+          _buildVerificationCodeRow(),
           const SizedBox(height: 16),
           FilledTextField(
             controller: _passwordController,
@@ -245,7 +377,8 @@ class _SignInPageState extends State<SignInPage> {
                 },
                 child: Text(
                   '로그인하기',
-                  style: TextStyle(color: Theme.of(context).colorScheme.primary),
+                  style:
+                      TextStyle(color: Theme.of(context).colorScheme.primary),
                 ),
               ),
             ],
@@ -260,6 +393,51 @@ class _SignInPageState extends State<SignInPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildVerificationCodeRow() {
+    return Row(
+      children: [
+        Expanded(
+          flex: 2,
+          child: FilledTextField(
+            controller: _verificationCodeController,
+            label: '인증번호',
+            required: true,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              OutlinedButton(
+                onPressed: _handleCodeVerification,
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 0),
+                  minimumSize: Size.fromHeight(kElementHeight),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(kBorderRadius),
+                  ),
+                ),
+                child: const Text('인증확인'),
+              ),
+              if (_timeLeft > 0) ...[
+                const SizedBox(height: 4),
+                Text(
+                  _timeLeftString,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: _timeLeft < 60 ? Colors.red : Colors.grey[600],
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -288,16 +466,21 @@ class _SignInPageState extends State<SignInPage> {
                           onPressed: () {},
                           icon: Icon(
                             Icons.people,
-                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onPrimaryContainer,
                           ),
                           label: Text(
                             '영업자 로그인',
                             style: TextStyle(
-                              color: Theme.of(context).colorScheme.onPrimaryContainer,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onPrimaryContainer,
                             ),
                           ),
                           style: FilledButton.styleFrom(
-                            backgroundColor: Theme.of(context).colorScheme.surface,
+                            backgroundColor:
+                                Theme.of(context).colorScheme.surface,
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 12,
@@ -345,14 +528,4 @@ class _SignInPageState extends State<SignInPage> {
       );
     }
   }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _passwordController.dispose();
-    _nicknameController.dispose();
-    _verificationCodeController.dispose();
-    super.dispose();
-  }
-} 
+}
