@@ -12,7 +12,7 @@ import '../../widgets/auth/google_login_button.dart';
 
 class LoginPage extends StatefulWidget {
   final Locale? locale;
-  
+
   const LoginPage({super.key, this.locale});
 
   @override
@@ -37,7 +37,7 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      final response = await _dio.post('/members/login', data: {
+      final response = await _dio.post('/api/v1/members/login', data: {
         "email": _emailController.text,
         "password": _passwordController.text,
       });
@@ -51,19 +51,21 @@ class _LoginPageState extends State<LoginPage> {
         if (apiResponse.success) {
           // TODO: Store tokens in secure storage
           final tokens = apiResponse.data;
-          
+
           if (mounted) {
             Navigator.pushReplacementNamed(context, '/home');
           }
         } else {
           setState(() {
-            _error = apiResponse.message ?? AppLocalizations.of(context)!.loginFail;
+            _error =
+                apiResponse.message ?? AppLocalizations.of(context)!.loginFail;
           });
         }
       }
     } on DioException catch (e) {
       if (mounted) {
-        final errorMessage = e.response?.data?['message'] ?? AppLocalizations.of(context)!.networkError;
+        final errorMessage = e.response?.data?['message'] ??
+            AppLocalizations.of(context)!.networkError;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errorMessage),
@@ -124,7 +126,8 @@ class _LoginPageState extends State<LoginPage> {
             Text(AppLocalizations.of(context)!.noAccount),
             TextButton(
               onPressed: () {
-                final currentLocale = Localizations.localeOf(context).languageCode;
+                final currentLocale =
+                    Localizations.localeOf(context).languageCode;
                 context.go('/$currentLocale/signin');
               },
               child: Text(
@@ -230,7 +233,7 @@ class _LoginPageState extends State<LoginPage> {
           title: Row(
             children: [
               Image.asset(
-                'assets/images/logo.png',  // 로고 이미지 추가 필요
+                'assets/images/logo.png', // 로고 이미지 추가 필요
                 height: 32,
               ),
               const SizedBox(width: 8),
@@ -243,7 +246,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ],
           ),
-          centerTitle: false,  // 왼쪽 정렬
+          centerTitle: false, // 왼쪽 정렬
           actions: [
             const LanguageDropdown(),
             const SizedBox(width: 8),
@@ -269,4 +272,4 @@ class _LoginPageState extends State<LoginPage> {
     _passwordController.dispose();
     super.dispose();
   }
-} 
+}

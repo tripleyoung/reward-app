@@ -8,13 +8,16 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../config/app_config.dart';
 import '../../services/dio_service.dart';
 import '../../constants/styles.dart';
+import 'dart:developer' as developer;
 
 class GoogleLoginButton extends StatelessWidget {
   const GoogleLoginButton({super.key});
 
   Future<void> _handleGoogleLogin(BuildContext context) async {
+    developer.log('Starting Google login process');
     try {
       if (kIsWeb) {
+        developer.log('Web platform detected');
         final baseUrl = AppConfig.apiBaseUrl.replaceAll('/api/v1', '');
         final currentLocale = Localizations.localeOf(context).languageCode;
         final authUrl = '$baseUrl/oauth2/authorization/google?locale=$currentLocale';
@@ -27,37 +30,57 @@ class GoogleLoginButton extends StatelessWidget {
           );
         }
       } else {
+        developer.log('Mobile platform detected');
         final GoogleSignIn googleSignIn = GoogleSignIn(
+          serverClientId: AppConfig.googleClientId,
           scopes: [
             'email',
             'profile',
+            'openid',
           ],
         );
 
-        await googleSignIn.signOut();
+        developer.log('Attempting Google sign in');
         final GoogleSignInAccount? account = await googleSignIn.signIn();
         
         if (account != null) {
+          developer.log('Google sign in successful: ${account.email}');
           final GoogleSignInAuthentication auth = await account.authentication;
           
-          final dio = DioService.getInstance(context);
-          try {
-            final response = await dio.post('/api/v1/members/oauth2/google/callback', data: {
-              'idToken': auth.idToken,
-            });
+          if (auth.idToken != null) {
+            developer.log('Got ID token, sending to backend');
+            final dio = DioService.getInstance(context);
+            try {
+              final response = await dio.post(
+                '/api/v1/members/oauth2/google/callback',
+                data: {'idToken': auth.idToken},
+              );
 
-            if (response.statusCode == 200) {
-              final currentLocale = Localizations.localeOf(context).languageCode;
-              context.go('/$currentLocale/home');
+              developer.log('Backend response: ${response.statusCode}');
+              if (response.statusCode == 200) {
+                // 토큰 저장 로직
+                final tokenDto = response.data['data'];
+                // TODO: 토큰 저장 구현
+
+                final currentLocale = Localizations.localeOf(context).languageCode;
+                context.go('/$currentLocale/home');
+              } else {
+                throw Exception('Login failed: ${response.statusCode}');
+              }
+            } catch (e) {
+              developer.log('API call error: $e');
+              rethrow;
             }
-          } catch (e) {
-            print('API Error: $e');
-            throw e;
+          } else {
+            developer.log('ID token is null');
+            throw Exception('Failed to get ID token');
           }
+        } else {
+          developer.log('Sign in cancelled or failed');
         }
       }
-    } catch (e) {
-      print('Google Sign-In Error: $e');
+    } catch (e, stackTrace) {
+      developer.log('Google login error', error: e, stackTrace: stackTrace);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.loginFail),
@@ -105,4 +128,4 @@ class GoogleLoginButton extends StatelessWidget {
       ),
     );
   }
-} 
+}
