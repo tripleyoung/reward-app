@@ -37,7 +37,14 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      final response = await _dio.post('/api/v1/members/login', data: {
+      print('Login request data: ${
+        {
+          "email": _emailController.text,
+          "password": _passwordController.text,
+        }
+      }');
+
+      final response = await _dio.post('/members/login', data: {
         "email": _emailController.text,
         "password": _passwordController.text,
       });
@@ -128,6 +135,8 @@ class _LoginPageState extends State<LoginPage> {
               onPressed: () {
                 final currentLocale =
                     Localizations.localeOf(context).languageCode;
+                print('현재 로케일: $currentLocale');
+                print('이동할 경로: /$currentLocale/signin');
                 context.go('/$currentLocale/signin');
               },
               child: Text(

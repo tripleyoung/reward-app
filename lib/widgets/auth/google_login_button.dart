@@ -9,6 +9,8 @@ import '../../config/app_config.dart';
 import '../../services/dio_service.dart';
 import '../../constants/styles.dart';
 import 'dart:developer' as developer;
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 
 class GoogleLoginButton extends StatelessWidget {
   const GoogleLoginButton({super.key});
@@ -18,7 +20,7 @@ class GoogleLoginButton extends StatelessWidget {
     try {
       if (kIsWeb) {
         developer.log('Web platform detected');
-        final baseUrl = AppConfig.apiBaseUrl.replaceAll('/api/v1', '');
+        final baseUrl = AppConfig.apiBaseUrl;
         final currentLocale = Localizations.localeOf(context).languageCode;
         final authUrl = '$baseUrl/oauth2/authorization/google?locale=$currentLocale';
         
@@ -29,6 +31,7 @@ class GoogleLoginButton extends StatelessWidget {
             mode: LaunchMode.platformDefault,
           );
         }
+        return;
       } else {
         developer.log('Mobile platform detected');
         final GoogleSignIn googleSignIn = GoogleSignIn(
@@ -52,16 +55,15 @@ class GoogleLoginButton extends StatelessWidget {
             final dio = DioService.getInstance(context);
             try {
               final response = await dio.post(
-                '/api/v1/members/oauth2/google/callback',
+                '/members/oauth2/google/callback',
                 data: {'idToken': auth.idToken},
               );
 
               developer.log('Backend response: ${response.statusCode}');
               if (response.statusCode == 200) {
-                // 토큰 저장 로직
-                final tokenDto = response.data['data'];
-                // TODO: 토큰 저장 구현
-
+                final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                await authProvider.setAuthenticated(true);
+                
                 final currentLocale = Localizations.localeOf(context).languageCode;
                 context.go('/$currentLocale/home');
               } else {

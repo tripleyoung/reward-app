@@ -208,7 +208,7 @@ class _SignInPageState extends State<SignInPage> {
     }
 
     try {
-      final response = await _dio.post('/api/v1/members/verify/send', 
+      final response = await _dio.post('/members/verify/send', 
         queryParameters: {
           'email': _emailController.text,
         },
@@ -246,7 +246,7 @@ class _SignInPageState extends State<SignInPage> {
 
   Future<void> _handleCodeVerification() async {
     try {
-      final response = await _dio.post('/api/v1/members/verify/check',
+      final response = await _dio.post('/members/verify/check',
         queryParameters: {
           'email': _emailController.text,
           'code': _verificationCodeController.text,
@@ -302,7 +302,7 @@ class _SignInPageState extends State<SignInPage> {
 
     if (_formKey.currentState!.validate()) {
       try {
-        final response = await _dio.post('/api/v1/members/signup', data: {
+        final response = await _dio.post('/members/signup', data: {
           "name": _nameController.text,
           "email": _emailController.text,
           "password": _passwordController.text,

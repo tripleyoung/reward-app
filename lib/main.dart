@@ -5,18 +5,23 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'router/app_router.dart';
 import 'providers/locale_provider.dart';
 import 'config/app_config.dart';
+import 'providers/auth_provider.dart';
 
-void main() {
-  const String environment = String.fromEnvironment(
-    'ENVIRONMENT',
-    defaultValue: 'dev',
-  );
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   
-  AppConfig.setEnvironment(
-    environment == 'prod' ? Environment.prod : Environment.dev,
-  );
+  final authProvider = AuthProvider();
+  await authProvider.loadAuthState();  // 초기 상태 로드
 
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => authProvider),
+        ChangeNotifierProvider(create: (_) => LocaleProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

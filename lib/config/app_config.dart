@@ -24,9 +24,9 @@ class AppConfig {
   static String _getWebBaseUrl() {
     switch (_environment) {
       case Environment.dev:
-        return 'http://localhost:8080/api/v1';
+        return 'http://localhost:8080';
       case Environment.prod:
-        return 'https://api.reward.com/api/v1';
+        return 'https://api.reward.com';
     }
   }
 
@@ -34,11 +34,15 @@ class AppConfig {
     switch (_environment) {
       case Environment.dev:
         return Platform.isAndroid 
-            ? 'http://10.0.2.2:8080/api/v1'  // Android 에뮬레이터
-            : 'http://localhost:8080/api/v1'; // iOS 시뮬레이터
+            ? 'http://10.0.2.2:8080'
+            : 'http://localhost:8080';
       case Environment.prod:
-        return 'https://api.reward.com/api/v1';
+        return 'https://api.reward.com';
     }
+  }
+
+  static String get apiPath {
+    return '/api/v1';
   }
 
   static String get googleClientId {
@@ -71,9 +75,9 @@ class AppConfig {
     if (kIsWeb) {
       switch (_environment) {
         case Environment.dev:
-          return 'http://localhost:3000/oauth2/redirect';
+          return 'http://localhost:46151';
         case Environment.prod:
-          return 'https://reward.com/oauth2/redirect';
+          return 'https://reward.com';
       }
     } else {
       return 'com.outsider.reward://oauth2redirect';
