@@ -1,9 +1,7 @@
 {
+  "@@locale": "ko",
   "appTitle": "리워드",
   
-  "@login": {
-    "description": "로그인 관련 문구"
-  },
   "loginTitle": "로그인",
   "emailLabel": "이메일",
   "passwordLabel": "비밀번호",
@@ -12,9 +10,6 @@
   "noAccount": "계정이 없으신가요?",
   "signUpButton": "회원가입",
   
-  "@signup": {
-    "description": "회원가입 관련 문구"
-  },
   "signUpTitle": "회원가입",
   "nameLabel": "이름",
   "nicknameLabel": "닉네임",
@@ -22,13 +17,19 @@
   "verificationCodeLabel": "인증 코드",
   "verifyCodeButton": "인증 확인",
   
-  "@errors": {
-    "description": "에러 메시지"
-  },
-  "invalidEmail": "올바른 이메일 형식이 아닙니다",
-  "invalidPassword": "비밀번호는 8자 이상이어야 합니다",
   "emailRequired": "이메일을 입력해주세요",
   "passwordRequired": "비밀번호를 입력해주세요",
   "nameRequired": "이름을 입력해주세요",
-  "nicknameRequired": "닉네임을 입력해주세요"
+  "nicknameRequired": "닉네임을 입력해주세요",
+  "emailVerificationRequired": "이메일 인증이 필요합니다",
+  
+  "emailSendSuccess": "인증 코드가 발송되었습니다",
+  "emailSendFail": "인증 코드 발송에 실패했습니다",
+  "emailVerifySuccess": "이메일 인증이 완료되었습니다",
+  "emailVerifyFail": "이메�� 인증에 실패했습니다",
+  "signupSuccess": "회원가입이 완료되었습니다",
+  "signupFail": "회원가입에 실패했습니다",
+  
+  "loginFail": "로그인에 실패했습니다",
+  "loginSuccess": "로그인이 완료되었습니다"
 } 

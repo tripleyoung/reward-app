@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
-class RewardHomePage extends StatelessWidget {
-  const RewardHomePage({super.key});
+class HomePage extends StatelessWidget {
+  final Locale? locale;
+  
+  const HomePage({super.key, this.locale});
 
   @override
   Widget build(BuildContext context) {

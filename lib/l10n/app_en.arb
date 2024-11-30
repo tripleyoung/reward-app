@@ -1,9 +1,6 @@
 {
-  "appTitle": "Reward",
-  
-  "@login": {
-    "description": "Login related strings"
-  },
+  "@@locale": "en",
+  "appTitle": "Reward App",
   "loginTitle": "Login",
   "emailLabel": "Email",
   "passwordLabel": "Password",
@@ -11,24 +8,23 @@
   "signInWithGoogle": "Sign in with Google",
   "noAccount": "Don't have an account?",
   "signUpButton": "Sign up",
-  
-  "@signup": {
-    "description": "Sign up related strings"
-  },
   "signUpTitle": "Sign Up",
   "nameLabel": "Name",
   "nicknameLabel": "Nickname",
   "verifyEmailButton": "Verify Email",
   "verificationCodeLabel": "Verification Code",
   "verifyCodeButton": "Verify Code",
-  
-  "@errors": {
-    "description": "Error messages"
-  },
-  "invalidEmail": "Invalid email format",
-  "invalidPassword": "Password must contain at least 8 characters",
   "emailRequired": "Email is required",
   "passwordRequired": "Password is required",
   "nameRequired": "Name is required",
-  "nicknameRequired": "Nickname is required"
+  "nicknameRequired": "Nickname is required",
+  "emailVerificationRequired": "Email verification is required",
+  "emailSendSuccess": "Verification code has been sent",
+  "emailSendFail": "Failed to send verification code",
+  "emailVerifySuccess": "Email verification completed",
+  "emailVerifyFail": "Email verification failed",
+  "signupSuccess": "Sign up completed successfully",
+  "signupFail": "Sign up failed",
+  "loginFail": "Login failed",
+  "loginSuccess": "Login successful"
 } 
