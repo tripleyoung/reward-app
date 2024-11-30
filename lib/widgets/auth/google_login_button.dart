@@ -1,46 +1,63 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:html' if (dart.library.html) 'dart:html' show window;
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../config/app_config.dart';
 import '../../services/dio_service.dart';
 import '../../constants/styles.dart';
-import 'oauth2_webview.dart';
-import 'package:dio/dio.dart';
 
 class GoogleLoginButton extends StatelessWidget {
   const GoogleLoginButton({super.key});
 
   Future<void> _handleGoogleLogin(BuildContext context) async {
     try {
-      final baseUrl = AppConfig.apiBaseUrl.replaceAll('/api/v1', '');
-      final currentLocale = Localizations.localeOf(context).languageCode;
-      
-      // locale 파라미터 추가
-      final authUrl = '$baseUrl/oauth2/authorization/google?locale=$currentLocale';
-      
       if (kIsWeb) {
-        window.location.href = authUrl;
+        final baseUrl = AppConfig.apiBaseUrl.replaceAll('/api/v1', '');
+        final currentLocale = Localizations.localeOf(context).languageCode;
+        final authUrl = '$baseUrl/oauth2/authorization/google?locale=$currentLocale';
+        
+        final uri = Uri.parse(authUrl);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(
+            uri,
+            mode: LaunchMode.platformDefault,
+          );
+        }
       } else {
-        // 모바일에서는 웹뷰로 열기
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => OAuth2WebView(
-              url: authUrl,
-              redirectUrl: AppConfig.redirectUrl,
-            ),
-          ),
+        final GoogleSignIn googleSignIn = GoogleSignIn(
+          scopes: [
+            'email',
+            'profile',
+          ],
         );
 
-        if (result != null) {
-          final currentLocale = Localizations.localeOf(context).languageCode;
-          context.go('/$currentLocale/home');
+        await googleSignIn.signOut();
+        final GoogleSignInAccount? account = await googleSignIn.signIn();
+        
+        if (account != null) {
+          final GoogleSignInAuthentication auth = await account.authentication;
+          
+          final dio = DioService.getInstance(context);
+          try {
+            final response = await dio.post('/api/v1/members/oauth2/google/callback', data: {
+              'idToken': auth.idToken,
+            });
+
+            if (response.statusCode == 200) {
+              final currentLocale = Localizations.localeOf(context).languageCode;
+              context.go('/$currentLocale/home');
+            }
+          } catch (e) {
+            print('API Error: $e');
+            throw e;
+          }
         }
       }
     } catch (e) {
+      print('Google Sign-In Error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.loginFail),
@@ -70,13 +87,9 @@ class GoogleLoginButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              child: SvgPicture.asset(
-                'assets/images/google.svg',
-                width: 24,
-                height: 24,
-              ),
+            SvgPicture.asset(
+              'assets/images/google.svg',
+              height: 24,
             ),
             const SizedBox(width: 8),
             Text(

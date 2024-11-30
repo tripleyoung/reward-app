@@ -1,0 +1,31 @@
+{
+  "project_info": {
+    "project_number": "133048024494",
+    "project_id": "your-project-id",
+    "storage_bucket": "your-project-id.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "android_client_info": {
+          "package_name": "com.outsider.reward"
+        },
+        "oauth_client": [
+          {
+            "client_id": "133048024494-s3hl3npre9hrmqeokp4pqp36me559o50.apps.googleusercontent.com",
+            "client_type": 1,
+            "android_info": {
+              "package_name": "com.outsider.reward",
+              "certificate_hash": "your-sha1-certificate-fingerprint"
+            }
+          }
+        ],
+        "api_key": [
+          {
+            "current_key": "your-api-key"
+          }
+        ]
+      }
+    }
+  ]
+} 
