@@ -7,6 +7,7 @@ import '../../models/api_response.dart';
 import '../../widgets/common/filled_text_field.dart';
 import '../../widgets/common/language_dropdown.dart';
 import 'package:go_router/go_router.dart';
+import '../../services/dio_service.dart';
 
 class LoginPage extends StatefulWidget {
   final Locale? locale;
@@ -21,7 +22,13 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   String? _error;
-  final _dio = Dio(BaseOptions(baseUrl: AppConfig.apiBaseUrl));
+  late Dio _dio;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _dio = DioService.getInstance(context);
+  }
 
   Future<void> _handleLogin() async {
     setState(() {
@@ -54,9 +61,15 @@ class _LoginPageState extends State<LoginPage> {
         }
       }
     } on DioException catch (e) {
-      setState(() {
-        _error = e.response?.data?['message'] ?? AppLocalizations.of(context)!.loginFail;
-      });
+      if (mounted) {
+        final errorMessage = e.response?.data?['message'] ?? AppLocalizations.of(context)!.networkError;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } catch (e) {
       setState(() {
         _error = AppLocalizations.of(context)!.loginFail;

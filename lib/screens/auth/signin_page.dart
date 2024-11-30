@@ -11,6 +11,7 @@ import '../../widgets/common/language_dropdown.dart';
 import 'package:provider/provider.dart';
 import '../../providers/locale_provider.dart';
 import 'package:go_router/go_router.dart';
+import '../../services/dio_service.dart';
 
 class SignInPage extends StatefulWidget {
   final Locale? locale;
@@ -31,8 +32,14 @@ class _SignInPageState extends State<SignInPage> {
   String? _error;
   Timer? _timer;
   int _timeLeft = 0;
-  final _dio = Dio(BaseOptions(baseUrl: AppConfig.apiBaseUrl));
+  late Dio _dio;
   bool _isEmailVerified = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _dio = DioService.getInstance(context);
+  }
 
   Widget _buildSideMenu() {
     return Container(
@@ -387,7 +394,6 @@ class _SignInPageState extends State<SignInPage> {
                 color: Colors.white,
                 child: Stack(
                   children: [
-                    // 언어 선택 드롭다운
                     Positioned(
                       top: 16,
                       right: 16,
@@ -400,7 +406,18 @@ class _SignInPageState extends State<SignInPage> {
                         child: const LanguageDropdown(),
                       ),
                     ),
-                    // 기존 폼
+                    Positioned(
+                      top: 16,
+                      left: 16,
+                      child: TextButton.icon(
+                        onPressed: () {
+                          final currentLocale = Localizations.localeOf(context).languageCode;
+                          context.go('/$currentLocale/login');
+                        },
+                        icon: const Icon(Icons.arrow_back),
+                        label: Text(AppLocalizations.of(context)!.loginTitle),
+                      ),
+                    ),
                     Center(
                       child: SingleChildScrollView(
                         child: Container(

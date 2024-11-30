@@ -26,10 +26,10 @@
   "emailSendSuccess": "인증 코드가 발송되었습니다",
   "emailSendFail": "인증 코드 발송에 실패했습니다",
   "emailVerifySuccess": "이메일 인증이 완료되었습니다",
-  "emailVerifyFail": "이메�� 인증에 실패했습니다",
+  "emailVerifyFail": "이메일 인증에 실패했습니다",
   "signupSuccess": "회원가입이 완료되었습니다",
   "signupFail": "회원가입에 실패했습니다",
   
-  "loginFail": "로그인에 실패했습니다",
-  "loginSuccess": "로그인이 완료되었습니다"
+  "loginSuccess": "로그인이 완료되었습니다",
+  "networkError": "네트워크 오류가 발생했습니다"
 } 
