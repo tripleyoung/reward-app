@@ -8,6 +8,7 @@ import '../../widgets/common/filled_text_field.dart';
 import '../../widgets/common/language_dropdown.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/dio_service.dart';
+import '../../widgets/auth/google_login_button.dart';
 
 class LoginPage extends StatefulWidget {
   final Locale? locale;
@@ -115,40 +116,7 @@ class _LoginPageState extends State<LoginPage> {
           child: Text(AppLocalizations.of(context)!.loginButton),
         ),
         const SizedBox(height: 16),
-        Container(
-          width: double.infinity,
-          height: kElementHeight,
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade300),
-            borderRadius: BorderRadius.circular(kBorderRadius),
-          ),
-          child: TextButton(
-            onPressed: () {
-              // TODO: Implement Google login
-            },
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.zero,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(kBorderRadius),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.g_mobiledata, size: 24),
-                const SizedBox(width: 8),
-                Text(
-                  AppLocalizations.of(context)!.signInWithGoogle,
-                  style: const TextStyle(
-                    color: Colors.black87,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        const GoogleLoginButton(),
         const SizedBox(height: 24),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,

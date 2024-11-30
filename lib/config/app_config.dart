@@ -32,4 +32,17 @@ class AppConfig {
         ? 'http://10.0.2.2:8080/api/v1'
         : 'http://localhost:8080/api/v1';
   }
+
+  static String get redirectUrl {
+    if (kIsWeb) {
+      return 'http://localhost:3000/oauth2/redirect';  // 웹용 리다이렉트 URL
+    }
+    return 'com.outsider.reward://oauth2redirect';  // 모바일용 리다이렉트 URL
+  }
+
+  static const Map<String, String> defaultHeaders = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'credentials': 'include',  // 쿠키 포함
+  };
 } 

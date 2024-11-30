@@ -26,5 +26,6 @@
   "signupSuccess": "Sign up completed successfully",
   "signupFail": "Sign up failed",
   "loginFail": "Login failed",
-  "loginSuccess": "Login successful"
+  "loginSuccess": "Login successful",
+  "networkError": "Network error occurred. Please try again."
 } 
