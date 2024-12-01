@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -16,14 +16,16 @@ class GoogleLoginButton extends StatelessWidget {
   const GoogleLoginButton({super.key});
 
   Future<void> _handleGoogleLogin(BuildContext context) async {
-    developer.log('Starting Google login process');
+    if (kDebugMode) print('Starting Google login process');
+
     try {
       if (kIsWeb) {
-        developer.log('Web platform detected');
+        if (kDebugMode) print('Web platform detected');
         final baseUrl = AppConfig.apiBaseUrl;
         final currentLocale = Localizations.localeOf(context).languageCode;
-        final authUrl = '$baseUrl/oauth2/authorization/google?locale=$currentLocale';
-        
+        final authUrl =
+            '$baseUrl/oauth2/authorization/google?locale=$currentLocale';
+
         final uri = Uri.parse(authUrl);
         if (await canLaunchUrl(uri)) {
           await launchUrl(
@@ -33,7 +35,7 @@ class GoogleLoginButton extends StatelessWidget {
         }
         return;
       } else {
-        developer.log('Mobile platform detected');
+        if (kDebugMode) print('Mobile platform detected');
         final GoogleSignIn googleSignIn = GoogleSignIn(
           serverClientId: AppConfig.googleClientId,
           scopes: [
@@ -43,47 +45,84 @@ class GoogleLoginButton extends StatelessWidget {
           ],
         );
 
-        developer.log('Attempting Google sign in');
-        final GoogleSignInAccount? account = await googleSignIn.signIn();
-        
-        if (account != null) {
-          developer.log('Google sign in successful: ${account.email}');
-          final GoogleSignInAuthentication auth = await account.authentication;
-          
-          if (auth.idToken != null) {
-            developer.log('Got ID token, sending to backend');
-            final dio = DioService.getInstance(context);
-            try {
-              final response = await dio.post(
-                '/members/oauth2/google/callback',
-                data: {'idToken': auth.idToken},
-              );
+        try {
+          if (kDebugMode) print('Attempting Google sign in');
+          final GoogleSignInAccount? account = await googleSignIn.signIn();
 
-              developer.log('Backend response: ${response.statusCode}');
-              if (response.statusCode == 200) {
-                final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                await authProvider.setTokens(
-                  accessToken: response.data['accessToken'],
-                  refreshToken: response.data['refreshToken'],
-                );
-                
-                final currentLocale = Localizations.localeOf(context).languageCode;
-                context.go('/$currentLocale/home');
+          if (kDebugMode)
+            print(
+                'Sign in result: ${account != null ? "Success" : "Cancelled"}');
+
+          if (account != null) {
+            if (kDebugMode) {
+              print('Google sign in successful');
+              print('Email: ${account.email}');
+              print('Display Name: ${account.displayName}');
+            }
+
+            try {
+              final GoogleSignInAuthentication auth =
+                  await account.authentication;
+              if (kDebugMode) print('Got authentication');
+
+              if (auth.idToken != null) {
+                if (kDebugMode) {
+                  print('Got ID token');
+                  print('Token length: ${auth.idToken!.length}');
+                }
+
+                final dio = DioService.getInstance(context);
+                try {
+                  final response = await dio.post(
+                    '/members/oauth2/google/callback',
+                    data: {'idToken': auth.idToken},
+                  );
+
+                  if (kDebugMode)
+                    print('Backend response: ${response.statusCode}');
+
+                  if (response.statusCode == 200) {
+                    if (kDebugMode) print('Login successful, setting tokens');
+                    
+                    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                    await authProvider.setTokens(
+                      accessToken: response.data['accessToken'],
+                      refreshToken: response.data['refreshToken'],
+                    );
+                    
+                    if (context.mounted) {
+                      final currentLocale = Localizations.localeOf(context).languageCode;
+                      if (kDebugMode) print('Navigating to /$currentLocale/home');
+                      context.go('/$currentLocale/home');
+                    } else {
+                      if (kDebugMode) print('Context not mounted, skipping navigation');
+                    }
+                  }
+                } catch (e) {
+                  if (kDebugMode) print('API call error: $e');
+                  rethrow;
+                }
+              } else {
+                if (kDebugMode) print('ID token is null');
+                throw Exception('Failed to get ID token');
               }
             } catch (e) {
-              developer.log('API call error: $e');
+              if (kDebugMode) print('Authentication error: $e');
               rethrow;
             }
           } else {
-            developer.log('ID token is null');
-            throw Exception('Failed to get ID token');
+            if (kDebugMode) print('Sign in cancelled by user');
           }
-        } else {
-          developer.log('Sign in cancelled or failed');
+        } catch (e) {
+          if (kDebugMode) print('Google SignIn error: $e');
+          rethrow;
         }
       }
-    } catch (e, stackTrace) {
-      developer.log('Google login error', error: e, stackTrace: stackTrace);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Google login error: $e');
+        if (e is Error) print('Stack trace: ${e.stackTrace}');
+      }
     }
   }
 

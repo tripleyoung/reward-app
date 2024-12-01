@@ -33,7 +33,7 @@ class AppConfig {
   static String _getMobileBaseUrl() {
     switch (_environment) {
       case Environment.dev:
-        return Platform.isAndroid 
+        return Platform.isAndroid
             ? 'http://10.0.2.2:8080'
             : 'http://localhost:8080';
       case Environment.prod:
@@ -49,7 +49,7 @@ class AppConfig {
     if (kIsWeb) {
       return _getWebGoogleClientId();
     } else {
-      return _getMobileGoogleClientId();
+      return _getWebGoogleClientId();
     }
   }
 
@@ -83,4 +83,4 @@ class AppConfig {
       return 'com.outsider.reward://oauth2redirect';
     }
   }
-} 
+}

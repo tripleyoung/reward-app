@@ -1,46 +1,13 @@
-import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
-import 'package:dio/dio.dart';
-import 'package:universal_html/html.dart';
 import 'package:flutter/material.dart';
-import 'dart:developer' as developer;
-import 'package:go_router/go_router.dart';
-import '../config/app_config.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../config/app_config.dart';
+import 'dart:developer' as developer;
+import 'auth_service.dart';
 
 class DioService {
-  // 쿠키 관련 유틸리티 메서드
-  static String? getCookie(String name) {
-    if (!kIsWeb) {
-      developer.log('Not a web platform, skipping cookie check');
-      return null;
-    }
-
-    developer.log('Checking cookies...');
-    final cookieString = document.cookie;
-    developer.log('Raw cookies: $cookieString');
-
-    if (cookieString?.isEmpty ?? true) {
-      developer.log('No cookies found');
-      return null;
-    }
-
-    final cookies = cookieString!.split(';');
-    developer.log('Split cookies: $cookies');
-
-    for (var cookie in cookies) {
-      final parts = cookie.trim().split('=');
-      developer.log('Checking cookie part: $parts');
-      if (parts.length == 2 && parts[0].trim() == name) {
-        developer.log('Found cookie $name: ${parts[1]}');
-        return parts[1];
-      }
-    }
-
-    developer.log('Cookie $name not found');
-    return null;
-  }
-
   // 토스트 메시지 표시 유틸리티 메서드
   static void _showToast(BuildContext context, String message, bool success) {
     if (!context.mounted) return;
@@ -49,7 +16,7 @@ class DioService {
       SnackBar(
         content: Text(message),
         backgroundColor: success ? Colors.green : Colors.red,
-        behavior: SnackBarBehavior.fixed,
+        duration: const Duration(seconds: 2),
       ),
     );
   }
