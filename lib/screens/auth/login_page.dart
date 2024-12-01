@@ -31,24 +31,25 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _handleLogin() async {
-    try {
-      final response = await _dio.post('/members/login', data: {
+    final response = await _dio.post('/members/login', 
+      data: {
         "email": _emailController.text,
         "password": _passwordController.text,
-      });
+      },
+      options: Options(
+        contentType: Headers.jsonContentType,
+      ),
+    );
 
-      final apiResponse = ApiResponse.fromJson(
-        response.data,
-        (json) => json as Map<String, dynamic>,
-      );
+    final apiResponse = ApiResponse.fromJson(
+      response.data,
+      (json) => json as Map<String, dynamic>,
+    );
 
-      if (mounted && apiResponse.success) {
-        // TODO: Store tokens in secure storage
-        final tokens = apiResponse.data;
-        Navigator.pushReplacementNamed(context, '/home');
-      }
-    } catch (e) {
-      // 에러 처리는 dio_service에서 처리됨
+    if (mounted && apiResponse.success) {
+      // TODO: Store tokens in secure storage
+      final tokens = apiResponse.data;
+      Navigator.pushReplacementNamed(context, '/home');
     }
   }
 

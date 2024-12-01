@@ -193,90 +193,66 @@ class _SignInPageState extends State<SignInPage> {
 
   Future<void> _handleEmailSend() async {
     if (_emailController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.emailRequired),
-          backgroundColor: Colors.red,
-        ),
-      );
       return;
     }
 
-    try {
-      final response = await _dio.post('/members/verify/send', 
-        queryParameters: {
-          'email': _emailController.text,
-        },
-      );
+    final response = await _dio.post('/members/verify/send', 
+      queryParameters: {
+        'email': _emailController.text,
+      },
+    );
 
-      final apiResponse = ApiResponse.fromJson(
-        response.data,
-        (json) => null,
-      );
+    final apiResponse = ApiResponse.fromJson(
+      response.data,
+      (json) => null,
+    );
 
-      if (mounted && apiResponse.success) {
-        _startTimer();
-      }
-    } catch (e) {
-      // 에러 처리는 dio_service에서 처리됨
+    if (mounted && apiResponse.success) {
+      _startTimer();
     }
   }
 
   Future<void> _handleCodeVerification() async {
-    try {
-      final response = await _dio.post('/members/verify/check',
-        queryParameters: {
-          'email': _emailController.text,
-          'code': _verificationCodeController.text,
-        },
-      );
+    final response = await _dio.post('/members/verify/check',
+      queryParameters: {
+        'email': _emailController.text,
+        'code': _verificationCodeController.text,
+      },
+    );
 
-      final apiResponse = ApiResponse.fromJson(
-        response.data,
-        (json) => json as bool,
-      );
+    final apiResponse = ApiResponse.fromJson(
+      response.data,
+      (json) => json as bool,
+    );
 
-      if (mounted && apiResponse.success && apiResponse.data == true) {
-        setState(() {
-          _isEmailVerified = true;
-        });
-      }
-    } catch (e) {
-      // 에러 처리는 dio_service에서 처리됨
+    if (mounted && apiResponse.success && apiResponse.data == true) {
+      setState(() {
+        _isEmailVerified = true;
+      });
     }
   }
 
   Future<void> _handleSubmit() async {
     if (!_isEmailVerified) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.emailVerificationRequired),
-          backgroundColor: Colors.red,
-        ),
-      );
       return;
     }
 
     if (_formKey.currentState!.validate()) {
-      try {
-        final response = await _dio.post('/members/signup', data: {
-          "name": _nameController.text,
-          "email": _emailController.text,
-          "password": _passwordController.text,
-          "nickname": _nicknameController.text,
-        });
+      final response = await _dio.post('/members/signup', data: {
+        "name": _nameController.text,
+        "email": _emailController.text,
+        "password": _passwordController.text,
+        "nickname": _nicknameController.text,
+      });
 
-        final apiResponse = ApiResponse.fromJson(
-          response.data,
-          (json) => json as int,
-        );
+      final apiResponse = ApiResponse.fromJson(
+        response.data,
+        (json) => json as int,
+      );
 
-        if (mounted && apiResponse.success) {
-          final currentLocale = Localizations.localeOf(context).languageCode;
-          context.go('/$currentLocale/login');
-        }
-      } catch (e) {
-        // 에러 처리는 dio_service에서 처리됨
+      if (mounted && apiResponse.success) {
+        final currentLocale = Localizations.localeOf(context).languageCode;
+        context.go('/$currentLocale/login');
       }
     }
   }

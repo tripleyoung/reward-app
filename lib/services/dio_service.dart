@@ -9,15 +9,33 @@ import '../config/app_config.dart';
 class DioService {
   // 쿠키 관련 유틸리티 메서드
   static String? getCookie(String name) {
-    if (!kIsWeb) return null;
+    if (!kIsWeb) {
+      developer.log('Not a web platform, skipping cookie check');
+      return null;
+    }
     
-    final cookies = document.cookie?.split(';');
-    if (cookies == null) return null;
+    developer.log('Checking cookies...');
+    final cookieString = document.cookie;
+    developer.log('Raw cookies: $cookieString');
+    
+    if (cookieString?.isEmpty ?? true) {
+      developer.log('No cookies found');
+      return null;
+    }
+    
+    final cookies = cookieString!.split(';');
+    developer.log('Split cookies: $cookies');
     
     for (var cookie in cookies) {
       final parts = cookie.trim().split('=');
-      if (parts[0] == name) return parts[1];
+      developer.log('Checking cookie part: $parts');
+      if (parts.length == 2 && parts[0].trim() == name) {
+        developer.log('Found cookie $name: ${parts[1]}');
+        return parts[1];
+      }
     }
+    
+    developer.log('Cookie $name not found');
     return null;
   }
 
@@ -78,16 +96,38 @@ class DioService {
 
   // Dio 인스턴스 생성 및 설정
   static Dio getInstance(BuildContext context) {
+    if (kDebugMode) {
+      print('Creating new Dio instance');
+    }
+
     final dio = Dio(
       BaseOptions(
         baseUrl: '${AppConfig.apiBaseUrl}${AppConfig.apiPath}',
-        headers: _getDefaultHeaders(),
+        contentType: 'application/json; charset=UTF-8',
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Accept': 'application/json',
+        },
         followRedirects: true,
         maxRedirects: 5,
-        validateStatus: (status) => status! < 500,
-        extra: {'withCredentials': true},
+        extra: {
+          'withCredentials': true
+        },
+        validateStatus: (status) {
+          return status! < 500;
+        },
       ),
     );
+
+    if (kDebugMode) {
+      dio.interceptors.add(LogInterceptor(
+        requestBody: true,
+        responseBody: true,
+        logPrint: (obj) {
+          print(obj.toString());
+        }
+      ));
+    }
 
     dio.interceptors.add(_createInterceptor(context));
     return dio;
@@ -119,6 +159,15 @@ class DioService {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    if (kDebugMode) {
+      print('\n🌐 === REQUEST START ===');
+      print('📍 URL: ${options.uri}');
+      print('📝 Method: ${options.method}');
+      print('📤 Headers: ${options.headers}');
+      print('📦 Raw Data: ${options.data}');
+      print('📦 Data Type: ${options.data.runtimeType}');
+    }
+
     if (kIsWeb) {
       final accessToken = getCookie('accessToken');
       if (accessToken != null) {
@@ -126,16 +175,10 @@ class DioService {
       }
     }
 
-    if (options.method == 'OPTIONS') {
-      return handler.resolve(Response(requestOptions: options, statusCode: 200));
+    if (kDebugMode) {
+      print('📤 Final Headers: ${options.headers}');
+      print('=== REQUEST END ===\n');
     }
-
-    _logApiCall('Request', {
-      'method': options.method,
-      'headers': options.headers,
-      'data': options.data,
-      'queryParameters': options.queryParameters,
-    }, uri: options.uri.toString());
     
     return handler.next(options);
   }
@@ -146,6 +189,23 @@ class DioService {
     ResponseInterceptorHandler handler,
     BuildContext context,
   ) async {
+    if (kDebugMode) {
+      print('\n📥 === RESPONSE START ===');
+      print('📍 URL: ${response.realUri}');
+      print('📊 Status: ${response.statusCode}');
+      print('📦 Data: ${response.data}');
+      
+      if (response.data is Map<String, dynamic>) {
+        final apiResponse = response.data as Map<String, dynamic>;
+        final success = apiResponse['success'] as bool? ?? false;
+        final message = apiResponse['message'] as String?;
+        
+        print(success ? '✅ Success: $message' : '❌ Failure: $message');
+      }
+      
+      print('=== RESPONSE END ===\n');
+    }
+
     _logApiCall('Response', response.data, 
       uri: response.realUri.toString(), 
       statusCode: response.statusCode
@@ -201,6 +261,25 @@ class DioService {
     ErrorInterceptorHandler handler,
     BuildContext context,
   ) async {
+    if (kDebugMode) {
+      print('\n❌ === ERROR START ===');
+      print('📍 URL: ${error.requestOptions.uri}');
+      print('🔴 Error Type: ${error.type}');
+      print('💬 Error Message: ${error.message}');
+      
+      if (error.response != null) {
+        print('📊 Status Code: ${error.response?.statusCode}');
+        print('📦 Error Data: ${error.response?.data}');
+      }
+      
+      if (error.stackTrace != null) {
+        print('🔍 Stack Trace:');
+        print(error.stackTrace);
+      }
+      
+      print('=== ERROR END ===\n');
+    }
+
     final errorMessage = _extractErrorMessage(error);
     
     // 에러 로깅

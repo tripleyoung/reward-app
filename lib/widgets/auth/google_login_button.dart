@@ -66,8 +66,6 @@ class GoogleLoginButton extends StatelessWidget {
                 
                 final currentLocale = Localizations.localeOf(context).languageCode;
                 context.go('/$currentLocale/home');
-              } else {
-                throw Exception('Login failed: ${response.statusCode}');
               }
             } catch (e) {
               developer.log('API call error: $e');
@@ -83,12 +81,6 @@ class GoogleLoginButton extends StatelessWidget {
       }
     } catch (e, stackTrace) {
       developer.log('Google login error', error: e, stackTrace: stackTrace);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.loginFail),
-          backgroundColor: Colors.red,
-        ),
-      );
     }
   }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -8,20 +9,32 @@ import 'providers/locale_provider.dart';
 import 'config/app_config.dart';
 import 'providers/auth_provider.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  // 디버그 모드일 때 로그 레벨 설정
+void main() {
   if (kDebugMode) {
-    debugPrint = (String? message, {int? wrapWidth}) {
-      if (message != null) {
-        print('\x1B[33m$message\x1B[0m'); // 노란색으로 출력
-      }
-    };
+    print('🐛 Debug mode is active');
+    print('==================================================');
+    print('🔍 VM Service URL will appear above');
+    print('==================================================');
+    
+    developer.registerExtension('ext.myFlutterApp', (method, params) async {
+      return developer.ServiceExtensionResponse.result('{"success": true}');
+    });
+    
+    print('🚀 App starting...');
   }
   
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  if (kDebugMode) {
+    print('📡 Flutter binding initialized');
+  }
+
   final authProvider = AuthProvider();
-  await authProvider.loadAuthState();
+  authProvider.loadAuthState().then((_) {
+    if (kDebugMode) {
+      print('🔐 Auth state loaded');
+    }
+  });
 
   runApp(
     MultiProvider(
