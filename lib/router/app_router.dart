@@ -10,49 +10,66 @@ import '../providers/auth_provider.dart';
 import 'dart:developer' as developer;
 
 final router = GoRouter(
-  initialLocation: '/ko/login',
-  debugLogDiagnostics: true,
+  initialLocation: '/',
+  redirect: (context, state) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final locale = Localizations.localeOf(context).languageCode;
+    
+    // 현재 경로
+    final path = state.uri.path;
+    
+    // 인증이 필요하지 않은 경로들
+    final publicPaths = [
+      '/$locale/login',
+      '/$locale/signin',
+      '/$locale/auth/callback',
+    ];
+
+    if (!authProvider.isAuthenticated) {
+      // 비인증 상태에서 public path가 아닌 경로로 접근하면 로그인 페이지로
+      if (!publicPaths.contains(path)) {
+        return '/$locale/login';
+      }
+    } else {
+      // 인증 상태에서 public path로 접근하면 홈으로
+      if (publicPaths.contains(path)) {
+        return '/$locale/home';
+      }
+    }
+
+    // 루트 경로 접근 시 처리
+    if (path == '/') {
+      return authProvider.isAuthenticated ? '/$locale/home' : '/$locale/login';
+    }
+
+    // 그 외의 경우는 리다이렉트하지 않음
+    return null;
+  },
   routes: [
     GoRoute(
-      path: '/:lang',
-      builder: (context, state) => const Scaffold(),
+      path: '/',
       redirect: (context, state) {
-        final isLoggedIn = false;
-        final lang = state.pathParameters['lang'] ?? 'ko';
-
-        if (isLoggedIn && state.matchedLocation == '/$lang/signin') {
-          return '/$lang/home';
-        }
-        return null;
+        final locale = Localizations.localeOf(context).languageCode;
+        return '/$locale/home';
       },
-      routes: [
-        GoRoute(
-          path: 'login',
-          builder: (context, state) => LoginPage(
-            locale: Locale(state.pathParameters['lang'] ?? 'ko'),
-          ),
-        ),
-        GoRoute(
-          path: 'signin',
-          builder: (context, state) => SignInPage(
-            locale: Locale(state.pathParameters['lang'] ?? 'ko'),
-          ),
-        ),
-        GoRoute(
-          path: 'home',
-          builder: (context, state) {
-            final lang = state.pathParameters['lang'] ?? 'ko';
-            return HomePage(locale: Locale(lang));
-          },
-        ),
-        GoRoute(
-          path: 'auth/callback',
-          builder: (context, state) {
-            final lang = state.pathParameters['lang'] ?? 'ko';
-            return const AuthCallbackPage();
-          },
-        ),
-      ],
+    ),
+    GoRoute(
+      path: '/:locale/login',
+      builder: (context, state) => const LoginPage(),
+    ),
+    GoRoute(
+      path: '/:locale/signin',
+      builder: (context, state) => const SignInPage(),
+    ),
+    GoRoute(
+      path: '/:locale/home',
+      builder: (context, state) => HomePage(
+        locale: Locale(state.pathParameters['locale']!),
+      ),
+    ),
+    GoRoute(
+      path: '/:locale/auth/callback',
+      builder: (context, state) => const AuthCallbackPage(),
     ),
   ],
 ); 

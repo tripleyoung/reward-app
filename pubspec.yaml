@@ -21,12 +21,13 @@ dependencies:
   shared_preferences: ^2.3.3
   webview_flutter: ^4.4.2
   universal_html: ^2.2.4
+  flutter_secure_storage: ^9.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
-
+  
 flutter:
   generate: true
   uses-material-design: true

@@ -9,6 +9,10 @@ import '../../widgets/common/language_dropdown.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/dio_service.dart';
 import '../../widgets/auth/google_login_button.dart';
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
+import 'package:flutter/foundation.dart';
+import '../../models/token_dto.dart';  // 경로 수정
 
 class LoginPage extends StatefulWidget {
   final Locale? locale;
@@ -31,25 +35,42 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _handleLogin() async {
-    final response = await _dio.post('/members/login', 
-      data: {
-        "email": _emailController.text,
-        "password": _passwordController.text,
-      },
-      options: Options(
-        contentType: Headers.jsonContentType,
-      ),
-    );
+    try {
+      final response = await _dio.post(
+        '/members/login',
+        data: {
+          "email": _emailController.text.trim(),
+          "password": _passwordController.text.trim(),
+        },
+        options: Options(
+          contentType: Headers.jsonContentType,
+        ),
+      );
 
-    final apiResponse = ApiResponse.fromJson(
-      response.data,
-      (json) => json as Map<String, dynamic>,
-    );
+      final apiResponse = ApiResponse.fromJson(
+        response.data,
+        (json) => TokenDto.fromJson(json as Map<String, dynamic>),
+      );
 
-    if (mounted && apiResponse.success) {
-      // TODO: Store tokens in secure storage
-      final tokens = apiResponse.data;
-      Navigator.pushReplacementNamed(context, '/home');
+      if (mounted && apiResponse.success && apiResponse.data != null) {
+        final tokenDto = apiResponse.data!;
+        
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        await authProvider.setTokens(
+          accessToken: tokenDto.accessToken,
+          refreshToken: tokenDto.refreshToken,
+        );
+
+        if (mounted) {
+          final currentLocale = Localizations.localeOf(context).languageCode;
+          context.go('/$currentLocale/home');
+        }
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Login error: $e');
+      }
+      // 에러 처리는 dio_service에서 처리
     }
   }
 

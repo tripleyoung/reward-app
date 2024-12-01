@@ -23,25 +23,19 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
     developer.log('=== Checking Auth Status ===');
     final dio = DioService.getInstance(context);
     try {
-      developer.log('Making request to /members/me');
       final response = await dio.get('/members/me');
-      developer.log('Response received: ${response.statusCode}');
-      developer.log('Response data: ${response.data}');
-      
       if (response.statusCode == 200) {
-        developer.log('Auth check successful');
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
-        await authProvider.setAuthenticated(true);
+        await authProvider.setTokens(
+          accessToken: response.data['accessToken'],
+          refreshToken: response.data['refreshToken'],
+        );
         
         final currentLocale = Localizations.localeOf(context).languageCode;
-        developer.log('Redirecting to /$currentLocale/home');
         context.go('/$currentLocale/home');
-      } else {
-        developer.log('Auth check failed with status: ${response.statusCode}');
-        _handleAuthError();
       }
     } catch (e) {
-      developer.log('Auth check error:', error: e);
+      developer.log('Auth check failed: $e');
       _handleAuthError();
     }
   }

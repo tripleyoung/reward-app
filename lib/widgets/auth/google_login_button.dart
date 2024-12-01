@@ -62,7 +62,10 @@ class GoogleLoginButton extends StatelessWidget {
               developer.log('Backend response: ${response.statusCode}');
               if (response.statusCode == 200) {
                 final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                await authProvider.setAuthenticated(true);
+                await authProvider.setTokens(
+                  accessToken: response.data['accessToken'],
+                  refreshToken: response.data['refreshToken'],
+                );
                 
                 final currentLocale = Localizations.localeOf(context).languageCode;
                 context.go('/$currentLocale/home');

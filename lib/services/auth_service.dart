@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:universal_html/html.dart' if (dart.library.io) 'dart:io';
 import 'package:flutter/foundation.dart';
 
@@ -6,39 +7,55 @@ class AuthService {
   static const String _tokenKey = 'access_token';
   static const String _refreshTokenKey = 'refresh_token';
 
-  // 토큰 저장
+  static final _secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      encryptedSharedPreferences: true,
+    ),
+  );
+
+  // 토큰 저장 - 보안 저장소 사용
   static Future<void> saveTokens({
     required String accessToken,
     required String refreshToken,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, accessToken);
-    await prefs.setString(_refreshTokenKey, refreshToken);
+    await _secureStorage.write(key: _tokenKey, value: accessToken);
+    await _secureStorage.write(key: _refreshTokenKey, value: refreshToken);
   }
 
-  // 토큰 가져오기
+  // 토큰 가져오기 - 보안 저장소 사용
   static Future<String?> getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_tokenKey);
+    return await _secureStorage.read(key: _tokenKey);
   }
 
-  // 리프레시 토큰 가져오기
+  // 리프레시 토큰 가져오기 - 보안 저장소 사용
   static Future<String?> getRefreshToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_refreshTokenKey);
+    return await _secureStorage.read(key: _refreshTokenKey);
   }
 
   // 로그인 상태 확인
   static Future<bool> isLoggedIn() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_tokenKey) != null;
+    final token = await _secureStorage.read(key: _tokenKey);
+    return token != null;
   }
 
-  // 로그아웃
+  // 쿠키 삭제 메서드 추가
+  static void _removeCookie(String name) {
+    if (kIsWeb) {
+      document.cookie = '$name=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+    }
+  }
+
+  // 로그아웃 - 보안 저장소와 쿠키에서 삭제
   static Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenKey);
-    await prefs.remove(_refreshTokenKey);
+    if (kIsWeb) {
+      // 웹에서는 쿠키 삭제
+      _removeCookie('accessToken');
+      _removeCookie('refreshToken');
+    } else {
+      // 모바일에서는 보안 저장소에서 삭제
+      await _secureStorage.delete(key: _tokenKey);
+      await _secureStorage.delete(key: _refreshTokenKey);
+    }
   }
 
   // 웹에서 쿠키 가져오기
