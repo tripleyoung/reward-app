@@ -357,27 +357,40 @@ class _SignInPageState extends State<SignInPage> {
       );
     } else {
       return Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              final currentLocale = Localizations.localeOf(context).languageCode;
-              context.go('/$currentLocale/login');
-            },
-          ),
-          actions: [
-            const LanguageDropdown(),
-            const SizedBox(width: 8),
-          ],
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-        ),
         body: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: _buildSignInForm(),
-            ),
+          child: Column(
+            children: [
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8.0,
+                  vertical: 8.0,
+                ),
+                margin: const EdgeInsets.only(top: 16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8.0),
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back, size: 28),
+                        onPressed: () {
+                          final currentLocale = Localizations.localeOf(context).languageCode;
+                          context.go('/$currentLocale/login');
+                        },
+                      ),
+                    ),
+                    const LanguageDropdown(),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16.0),
+                  child: _buildSignInForm(),
+                ),
+              ),
+            ],
           ),
         ),
       );
