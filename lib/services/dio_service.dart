@@ -133,22 +133,17 @@ class DioService {
 
   // 토큰 처리
   static Future<void> _handleTokens(RequestOptions options, BuildContext context) async {
-    if (kIsWeb) {
-      final accessToken = getCookie('accessToken');
-      if (kDebugMode) {
-        print('📦 accessToken $accessToken');
-      }
-      if (accessToken != null) {
-        options.headers['Authorization'] = 'Bearer $accessToken';
-      }
-    } else {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final accessToken = authProvider.accessToken;
-      final refreshToken = authProvider.refreshToken;
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final accessToken = authProvider.accessToken;
 
-      if (accessToken != null) {
-        options.headers['Authorization'] = 'Bearer $accessToken';
-      }
+    // 액세스 토큰은 항상 전송
+    if (accessToken != null) {
+      options.headers['Authorization'] = 'Bearer $accessToken';
+    }
+
+    // 리프레시 토큰은 토큰 갱신 요청시에만 전송
+    if (options.path.endsWith('/members/refresh')) {
+      final refreshToken = authProvider.refreshToken;
       if (refreshToken != null) {
         options.headers['Authorization-Refresh'] = 'Bearer $refreshToken';
       }
@@ -241,18 +236,50 @@ class DioService {
           return handler.next(response);
         },
         onError: (error, handler) async {
-          _logDioError(error);
-          
-          if (error.response?.statusCode == 401) {
-            final response = await _handleTokenRefresh(error, dio, context);
-            if (response != null) {
-              return handler.resolve(response);
+          if (kDebugMode) {
+            print('\n❌ === ERROR START ===');
+            print('📍 URL: ${error.requestOptions.uri}');
+            print('🔴 Error Type: ${error.type}');
+            print('💬 Error Message: ${error.message}');
+          }
+
+          // 401 에러일 경우 토큰 갱신 시도
+          if (error.response?.statusCode == 401 && 
+              !error.requestOptions.path.endsWith('/members/refresh')) {
+            final authProvider = Provider.of<AuthProvider>(context, listen: false);
+            try {
+              await authProvider.refreshAuthToken();
+              
+              if (authProvider.isAuthenticated) {
+                final opts = Options(
+                  method: error.requestOptions.method,
+                  headers: error.requestOptions.headers,
+                );
+
+                opts.headers?['Authorization'] = 'Bearer ${authProvider.accessToken}';
+
+                final clonedRequest = await dio.request(
+                  error.requestOptions.path,
+                  options: opts,
+                  data: error.requestOptions.data,
+                  queryParameters: error.requestOptions.queryParameters,
+                );
+                return handler.resolve(clonedRequest);
+              }
+            } catch (e) {
+              if (kDebugMode) {
+                print('Token refresh failed: $e');
+              }
             }
           }
 
           final errorMessage = _extractErrorMessage(error);
           if (errorMessage.isNotEmpty) {
             _showToast(context, errorMessage, false);
+          }
+
+          if (kDebugMode) {
+            print('=== ERROR END ===\n');
           }
 
           return handler.next(error);

@@ -63,6 +63,7 @@ class AuthProvider extends ChangeNotifier {
 
   // 초기 상태 로드
   Future<void> loadAuthState() async {
+    // 저장소에서 토큰 확인
     final token = await AuthService.getToken();
     final refreshToken = await AuthService.getRefreshToken();
     _accessToken = token;
@@ -72,44 +73,33 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> refreshAuthToken() async {
+    if (_refreshToken == null) return;
+
     try {
       final dio = Dio(BaseOptions(
         baseUrl: '${AppConfig.apiBaseUrl}${AppConfig.apiPath}',
-        extra: {'withCredentials': true},
       ));
 
-      if (kIsWeb) {
-        // 웹에서는 쿠키가 자동으로 전송됨
-        final response = await dio.post('/members/refresh');
-        if (response.statusCode == 200) {
-          _isAuthenticated = true;
-          notifyListeners();
-        }
-      } else {
-        // 모바일에서는 리프레시 토큰을 헤더에 포함
-        if (_refreshToken == null) return;
+      final response = await dio.post(
+        '/members/refresh',
+        options: Options(
+          headers: {
+            'Authorization-Refresh': 'Bearer $_refreshToken',
+          },
+        ),
+      );
 
-        final response = await dio.post(
-          '/members/refresh',
-          options: Options(
-            headers: {
-              'Authorization-Refresh': 'Bearer $_refreshToken',
-            },
-          ),
-        );
+      final apiResponse = ApiResponse.fromJson(
+        response.data,
+        (json) => TokenDto.fromJson(json as Map<String, dynamic>),
+      );
 
-        final apiResponse = ApiResponse.fromJson(
-          response.data,
-          (json) => TokenDto.fromJson(json as Map<String, dynamic>),
-        );
-
-        if (apiResponse.success && apiResponse.data != null) {
-          _accessToken = apiResponse.data?.accessToken;
-          _refreshToken = apiResponse.data?.refreshToken;
-          _isAuthenticated = true;
-          await _saveTokensToStorage();
-          notifyListeners();
-        }
+      if (apiResponse.success && apiResponse.data != null) {
+        _accessToken = apiResponse.data?.accessToken;
+        _refreshToken = apiResponse.data?.refreshToken;
+        _isAuthenticated = true;
+        await _saveTokensToStorage();
+        notifyListeners();
       }
     } catch (e) {
       if (kDebugMode) {
