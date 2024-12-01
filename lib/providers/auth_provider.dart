@@ -136,4 +136,12 @@ class AuthProvider extends ChangeNotifier {
       }
     }
   }
+
+  Future<void> init() async {
+    // 저장된 토큰 불러오기
+    _accessToken = await AuthService.getToken();
+    _refreshToken = await AuthService.getRefreshToken();
+    _isAuthenticated = _accessToken != null;
+    notifyListeners();
+  }
 }

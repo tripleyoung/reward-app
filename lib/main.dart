@@ -9,32 +9,11 @@ import 'providers/locale_provider.dart';
 import 'config/app_config.dart';
 import 'providers/auth_provider.dart';
 
-void main() {
-  if (kDebugMode) {
-    print('🐛 Debug mode is active');
-    print('==================================================');
-    print('🔍 VM Service URL will appear above');
-    print('==================================================');
-    
-    developer.registerExtension('ext.myFlutterApp', (method, params) async {
-      return developer.ServiceExtensionResponse.result('{"success": true}');
-    });
-    
-    print('🚀 App starting...');
-  }
-  
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  if (kDebugMode) {
-    print('📡 Flutter binding initialized');
-  }
-
   final authProvider = AuthProvider();
-  authProvider.loadAuthState().then((_) {
-    if (kDebugMode) {
-      print('🔐 Auth state loaded');
-    }
-  });
+  await authProvider.init();
 
   runApp(
     MultiProvider(
@@ -52,30 +31,27 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => LocaleProvider(),
-      child: Consumer<LocaleProvider>(
-        builder: (context, localeProvider, _) {
-          return MaterialApp.router(
-            routerConfig: router,
-            locale: localeProvider.locale,
-            supportedLocales: const [
-              Locale('ko', ''),
-              Locale('en', ''),
-            ],
-            localizationsDelegates: const [
-              AppLocalizations.delegate,
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
-            theme: ThemeData(
-              useMaterial3: true,
-              colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-            ),
-          );
-        },
-      ),
+    return Consumer<LocaleProvider>(
+      builder: (context, localeProvider, _) {
+        return MaterialApp.router(
+          routerConfig: router,
+          locale: localeProvider.locale,
+          supportedLocales: const [
+            Locale('ko', ''),
+            Locale('en', ''),
+          ],
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          theme: ThemeData(
+            useMaterial3: true,
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+          ),
+        );
+      },
     );
   }
 }

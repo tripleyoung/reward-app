@@ -178,11 +178,16 @@ class DioService {
       print('Creating new Dio instance');
     }
 
+    final currentLocale = Localizations.localeOf(context).languageCode;
+    
     final dio = Dio(
       BaseOptions(
         baseUrl: '${AppConfig.apiBaseUrl}${AppConfig.apiPath}',
         contentType: 'application/json',
-        headers: _getDefaultHeaders(),
+        headers: {
+          ..._getDefaultHeaders(),
+          'Accept-Language': currentLocale,
+        },
         followRedirects: true,
         maxRedirects: 5,
         extra: {'withCredentials': true},
@@ -262,6 +267,7 @@ class DioService {
     return {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      'Accept-Language': 'ko',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers':
