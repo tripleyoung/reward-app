@@ -45,15 +45,11 @@ class DioService {
   static void _showToast(BuildContext context, String message, bool success) {
     if (!context.mounted) return;
 
-    // 이전 SnackBar 제거
-    ScaffoldMessenger.of(context).removeCurrentSnackBar();
-    
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: success ? Colors.green : Colors.red,
         behavior: SnackBarBehavior.fixed,
-        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -103,7 +99,118 @@ class DioService {
     }
   }
 
-  // Dio 인스턴스 생성 및 설정
+  // 요청 로깅
+  static void _logRequest(RequestOptions options) {
+    if (kDebugMode) {
+      print('\n🌐 === REQUEST START ===');
+      print('📍 URL: ${options.uri}');
+      print('📝 Method: ${options.method}');
+      print('📤 Headers: ${options.headers}');
+      print('📦 Raw Data: ${options.data}');
+      print('📦 Data Type: ${options.data.runtimeType}');
+    }
+  }
+
+  // 응답 로깅
+  static void _logResponse(Response response) {
+    if (kDebugMode) {
+      print('\n📥 === RESPONSE START ===');
+      print('📍 URL: ${response.realUri}');
+      print('📊 Status: ${response.statusCode}');
+      print('📦 Data: ${response.data}');
+    }
+  }
+
+  // 에러 로깅
+  static void _logDioError(DioException error) {
+    if (kDebugMode) {
+      print('\n❌ === ERROR START ===');
+      print('📍 URL: ${error.requestOptions.uri}');
+      print('🔴 Error Type: ${error.type}');
+      print('💬 Error Message: ${error.message}');
+    }
+  }
+
+  // 토큰 처리
+  static Future<void> _handleTokens(RequestOptions options, BuildContext context) async {
+    if (kIsWeb) {
+      final accessToken = getCookie('accessToken');
+      if (kDebugMode) {
+        print('📦 accessToken $accessToken');
+      }
+      if (accessToken != null) {
+        options.headers['Authorization'] = 'Bearer $accessToken';
+      }
+    } else {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final accessToken = authProvider.accessToken;
+      final refreshToken = authProvider.refreshToken;
+
+      if (accessToken != null) {
+        options.headers['Authorization'] = 'Bearer $accessToken';
+      }
+      if (refreshToken != null) {
+        options.headers['Authorization-Refresh'] = 'Bearer $refreshToken';
+      }
+    }
+  }
+
+  // API 응답 처리
+  static void _handleApiResponse(Response response, BuildContext context) {
+    if (response.data != null) {
+      String? message;
+      bool success = false;
+
+      if (response.data is Map<String, dynamic>) {
+        final apiResponse = response.data as Map<String, dynamic>;
+        message = apiResponse['message'] as String?;
+        success = apiResponse['success'] as bool? ?? false;
+
+        if (kDebugMode) {
+          print(success ? '✅ Success: $message' : '❌ Failure: $message');
+        }
+      }
+
+      if (message != null && message.isNotEmpty) {
+        _showToast(context, message, success);
+      }
+    }
+  }
+
+  // 토큰 갱신 처리
+  static Future<Response?> _handleTokenRefresh(
+    DioException error,
+    Dio dio,
+    BuildContext context,
+  ) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    try {
+      await authProvider.refreshAuthToken();
+      if (authProvider.isAuthenticated) {
+        final opts = Options(
+          method: error.requestOptions.method,
+          headers: error.requestOptions.headers,
+        );
+
+        if (!kIsWeb && authProvider.accessToken != null) {
+          opts.headers?['Authorization'] = 'Bearer ${authProvider.accessToken}';
+        }
+
+        return await dio.request(
+          error.requestOptions.path,
+          options: opts,
+          data: error.requestOptions.data,
+          queryParameters: error.requestOptions.queryParameters,
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Token refresh failed: $e');
+      }
+    }
+    return null;
+  }
+
   static Dio getInstance(BuildContext context) {
     if (kDebugMode) {
       print('Creating new Dio instance');
@@ -112,79 +219,42 @@ class DioService {
     final dio = Dio(
       BaseOptions(
         baseUrl: '${AppConfig.apiBaseUrl}${AppConfig.apiPath}',
-        contentType: 'application/json; charset=UTF-8',
-        headers: {
-          'Content-Type': 'application/json; charset=UTF-8',
-          'Accept': 'application/json',
-        },
+        contentType: 'application/json',
+        headers: _getDefaultHeaders(),
         followRedirects: true,
         maxRedirects: 5,
-        extra: {
-          'withCredentials': true
-        },
-        validateStatus: (status) {
-          return status! < 500;
-        },
+        extra: {'withCredentials': true},
+        validateStatus: (status) => status! < 500,
       ),
     );
 
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          if (kIsWeb) {
-            // 웹에서는 쿠키가 자동으로 처리됨
-            return handler.next(options);
-          }
-
-          // 모바일에서는 헤더에 토큰 추가
-          final authProvider = Provider.of<AuthProvider>(context, listen: false);
-          final accessToken = authProvider.accessToken;
-          final refreshToken = authProvider.refreshToken;
-
-          if (accessToken != null) {
-            options.headers['Authorization'] = 'Bearer $accessToken';
-          }
-          if (refreshToken != null) {
-            options.headers['Authorization-Refresh'] = 'Bearer $refreshToken';
-          }
-
-          if (kDebugMode) {
-            print('Request Headers: ${options.headers}');
-          }
+          _logRequest(options);
+          await _handleTokens(options, context);
           return handler.next(options);
         },
+        onResponse: (response, handler) async {
+          _logResponse(response);
+          _handleApiResponse(response, context);
+          return handler.next(response);
+        },
         onError: (error, handler) async {
+          _logDioError(error);
+          
           if (error.response?.statusCode == 401) {
-            final authProvider = Provider.of<AuthProvider>(context, listen: false);
-            
-            try {
-              await authProvider.refreshAuthToken();
-              
-              if (authProvider.isAuthenticated) {
-                // 토큰 갱신 성공 - 원래 요청 재시도
-                final opts = Options(
-                  method: error.requestOptions.method,
-                  headers: error.requestOptions.headers,
-                );
-
-                if (!kIsWeb && authProvider.accessToken != null) {
-                  opts.headers?['Authorization'] = 'Bearer ${authProvider.accessToken}';
-                }
-
-                final clonedRequest = await dio.request(
-                  error.requestOptions.path,
-                  options: opts,
-                  data: error.requestOptions.data,
-                  queryParameters: error.requestOptions.queryParameters,
-                );
-                return handler.resolve(clonedRequest);
-              }
-            } catch (e) {
-              if (kDebugMode) {
-                print('Token refresh failed: $e');
-              }
+            final response = await _handleTokenRefresh(error, dio, context);
+            if (response != null) {
+              return handler.resolve(response);
             }
           }
+
+          final errorMessage = _extractErrorMessage(error);
+          if (errorMessage.isNotEmpty) {
+            _showToast(context, errorMessage, false);
+          }
+
           return handler.next(error);
         },
       ),
@@ -204,150 +274,6 @@ class DioService {
           'Origin, Content-Type, Accept, Authorization',
       'Access-Control-Allow-Credentials': 'true',
     };
-  }
-
-  // 인터셉터 생성
-  static InterceptorsWrapper _createInterceptor(BuildContext context) {
-    return InterceptorsWrapper(
-      onRequest: (options, handler) => _handleRequest(options, handler),
-      onResponse: (response, handler) =>
-          _handleResponse(response, handler, context),
-      onError: (error, handler) => _handleError(error, handler, context),
-    );
-  }
-
-  // 요청 처리
-  static Future<void> _handleRequest(
-    RequestOptions options,
-    RequestInterceptorHandler handler,
-  ) async {
-    if (kDebugMode) {
-      print('\n🌐 === REQUEST START ===');
-      print('📍 URL: ${options.uri}');
-      print('📝 Method: ${options.method}');
-      print('📤 Headers: ${options.headers}');
-      print('📦 Raw Data: ${options.data}');
-      print('📦 Data Type: ${options.data.runtimeType}');
-    }
-
-    if (kIsWeb) {
-      final accessToken = getCookie('accessToken');
-      if (kDebugMode) {
-       print('📦 accessToken $accessToken');
-    }
-
-
-      if (accessToken != null) {
-        options.headers['Authorization'] = 'Bearer $accessToken';
-      }
-    }
-
-    if (kDebugMode) {
-      print('📤 Final Headers: ${options.headers}');
-      print('=== REQUEST END ===\n');
-    }
-
-    return handler.next(options);
-  }
-
-  // 응답 처리
-  static Future<void> _handleResponse(
-    Response response,
-    ResponseInterceptorHandler handler,
-    BuildContext context,
-  ) async {
-    if (kDebugMode) {
-      print('\n📥 === RESPONSE START ===');
-      print('📍 URL: ${response.realUri}');
-      print('📊 Status: ${response.statusCode}');
-      print('📦 Data: ${response.data}');
-    }
-
-    try {
-      if (response.data is Map<String, dynamic>) {
-        final apiResponse = response.data as Map<String, dynamic>;
-        final success = apiResponse['success'] as bool? ?? false;
-        final message = apiResponse['message'] as String?;
-
-        if (kDebugMode) {
-          print(success ? '✅ Success: $message' : '❌ Failure: $message');
-        }
-
-        // message가 있을 때만 toast 표시
-        if (message != null && message.isNotEmpty) {
-          // 메인 스레드에서 UI 업데이트
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (context.mounted) {
-              _showToast(context, message, success);
-            }
-          });
-        }
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error processing response: $e');
-      }
-    }
-
-    if (kDebugMode) {
-      print('=== RESPONSE END ===\n');
-    }
-
-    return handler.next(response);
-  }
-
-  // 리다이렉트 처리
-  static void _handleRedirect(Response response, BuildContext context) {
-    if (response.statusCode == 302) {
-      final location = response.headers['location']?.first;
-      if (location != null) {
-        final uri = Uri.parse(location);
-        if (uri.path == '/home') {
-          GoRouter.of(context).go(uri.path, extra: uri.queryParameters);
-        }
-      }
-    }
-  }
-
-  // 에러 처리
-  static Future<void> _handleError(
-    DioException error,
-    ErrorInterceptorHandler handler,
-    BuildContext context,
-  ) async {
-    if (kDebugMode) {
-      print('\n❌ === ERROR START ===');
-      print('📍 URL: ${error.requestOptions.uri}');
-      print('🔴 Error Type: ${error.type}');
-      print('💬 Error Message: ${error.message}');
-
-      if (error.response != null) {
-        print('📊 Status Code: ${error.response?.statusCode}');
-        print('📦 Error Data: ${error.response?.data}');
-      }
-
-      if (error.stackTrace != null) {
-        print('🔍 Stack Trace:');
-        print(error.stackTrace);
-      }
-
-      print('=== ERROR END ===\n');
-    }
-
-    final errorMessage = _extractErrorMessage(error);
-
-    // 에러 로깅
-    _logError(
-      errorMessage,
-      error,
-      error.stackTrace,
-    );
-
-    if (errorMessage.isNotEmpty) {
-      _showToast(context, errorMessage, false);
-    }
-
-    return handler.next(error);
   }
 
   // 에러 메시지 추출
