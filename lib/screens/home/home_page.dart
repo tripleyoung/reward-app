@@ -8,20 +8,27 @@ import 'package:flutter/foundation.dart';
 
 class HomePage extends StatelessWidget {
   final Locale locale;
-  
+
   const HomePage({super.key, required this.locale});
 
   Future<void> _handleLogout(BuildContext context) async {
     try {
+      if (kDebugMode) print('Attempting logout');
+      
       final dio = DioService.getInstance(context);
       await dio.post('/members/logout');
       
+      if (kDebugMode) print('Server logout successful');
+
       if (context.mounted) {
-        // AuthProvider를 통해 로그아웃 처리
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         await authProvider.logout();
 
-        // 로그인 페이지로 이동
+        if (kDebugMode) {
+          print('Local logout completed');
+          print('Auth state: ${authProvider.isAuthenticated}');
+        }
+
         final currentLocale = Localizations.localeOf(context).languageCode;
         context.go('/$currentLocale/login');
       }
@@ -29,7 +36,7 @@ class HomePage extends StatelessWidget {
       if (kDebugMode) {
         print('Logout error: $e');
       }
-      // 에러가 발생해도 로그아웃 처리
+      // 서버 에러가 발생해도 로컬 로그아웃은 진행
       if (context.mounted) {
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         await authProvider.logout();
@@ -70,4 +77,4 @@ class HomePage extends StatelessWidget {
       ),
     );
   }
-} 
+}

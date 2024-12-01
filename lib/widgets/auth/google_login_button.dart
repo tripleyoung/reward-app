@@ -82,20 +82,29 @@ class GoogleLoginButton extends StatelessWidget {
                     print('Backend response: ${response.statusCode}');
 
                   if (response.statusCode == 200) {
-                    if (kDebugMode) print('Login successful, setting tokens');
+                    if (kDebugMode) {
+                      print('Login successful, response data:');
+                      print('Response data: ${response.data}');
+                      print('Response type: ${response.data.runtimeType}');
+                    }
                     
                     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                    
+                    final apiResponse = response.data['data'];
                     await authProvider.setTokens(
-                      accessToken: response.data['accessToken'],
-                      refreshToken: response.data['refreshToken'],
+                      accessToken: apiResponse['accessToken'],
+                      refreshToken: apiResponse['refreshToken'],
                     );
                     
                     if (context.mounted) {
+                      if (kDebugMode) {
+                        print('Auth state after login:');
+                        print('isAuthenticated: ${authProvider.isAuthenticated}');
+                        print('Access token present: ${authProvider.accessToken != null}');
+                      }
+                      
                       final currentLocale = Localizations.localeOf(context).languageCode;
-                      if (kDebugMode) print('Navigating to /$currentLocale/home');
                       context.go('/$currentLocale/home');
-                    } else {
-                      if (kDebugMode) print('Context not mounted, skipping navigation');
                     }
                   }
                 } catch (e) {

@@ -16,15 +16,28 @@ class AuthProvider extends ChangeNotifier {
   String? get refreshToken => _refreshToken;
 
   Future<void> setTokens({String? accessToken, String? refreshToken}) async {
+    if (kDebugMode) {
+      print('Setting tokens:');
+      print('Access Token: ${accessToken != null}');
+      print('Refresh Token: ${refreshToken != null}');
+    }
+
     _accessToken = accessToken;
     _refreshToken = refreshToken;
     _isAuthenticated = accessToken != null;
 
-    if (!kIsWeb && accessToken != null && refreshToken != null) {
-      await AuthService.saveTokens(
-        accessToken: accessToken,
-        refreshToken: refreshToken,
-      );
+    if (kDebugMode) {
+      print('Auth state after setting tokens:');
+      print('isAuthenticated: $_isAuthenticated');
+    }
+
+    if (!kIsWeb) {
+      if (accessToken != null && refreshToken != null) {
+        await AuthService.saveTokens(
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+        );
+      }
     }
     
     notifyListeners();

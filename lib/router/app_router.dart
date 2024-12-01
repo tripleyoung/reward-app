@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../screens/auth/login_page.dart';
@@ -18,6 +19,13 @@ final router = GoRouter(
     // 현재 경로
     final path = state.uri.path;
     
+    if (kDebugMode) {
+      print('🔄 Router Redirect:');
+      print('Current path: $path');
+      print('isAuthenticated: ${authProvider.isAuthenticated}');
+      print('Locale: $locale');
+    }
+    
     // 인증이 필요하지 않은 경로들
     final publicPaths = [
       '/$locale/login',
@@ -25,24 +33,32 @@ final router = GoRouter(
       '/$locale/auth/callback',
     ];
 
+    if (kDebugMode) {
+      print('Public paths: $publicPaths');
+    }
+
     if (!authProvider.isAuthenticated) {
       // 비인증 상태에서 public path가 아닌 경로로 접근하면 로그인 페이지로
       if (!publicPaths.contains(path)) {
+        if (kDebugMode) print('⏩ Redirecting to login: /$locale/login');
         return '/$locale/login';
       }
     } else {
       // 인증 상태에서 public path로 접근하면 홈으로
       if (publicPaths.contains(path)) {
+        if (kDebugMode) print('⏩ Redirecting to home: /$locale/home');
         return '/$locale/home';
       }
     }
 
     // 루트 경로 접근 시 처리
     if (path == '/') {
-      return authProvider.isAuthenticated ? '/$locale/home' : '/$locale/login';
+      final redirectPath = authProvider.isAuthenticated ? '/$locale/home' : '/$locale/login';
+      if (kDebugMode) print('⏩ Root path redirect: $redirectPath');
+      return redirectPath;
     }
 
-    // 그 외의 경우는 리다이렉트하지 않음
+    if (kDebugMode) print('No redirect needed');
     return null;
   },
   routes: [
