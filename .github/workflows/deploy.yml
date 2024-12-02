@@ -26,5 +26,6 @@ jobs:
 
     - name: Deploy to Vercel
       run: |
-        cd build/web
+        mv build/web build/reward-app
+        cd build/reward-app
         npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
