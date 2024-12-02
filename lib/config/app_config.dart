@@ -26,7 +26,7 @@ class AppConfig {
       case Environment.dev:
         return 'http://localhost:8080';
       case Environment.prod:
-        return 'https://api.reward.com';
+        return 'https://back.reward-factory.shop:8765';
     }
   }
 
@@ -37,7 +37,7 @@ class AppConfig {
             ? 'http://10.0.2.2:8080'
             : 'http://localhost:8080';
       case Environment.prod:
-        return 'https://api.reward.com';
+        return 'https://back.reward-factory.shop:8765';
     }
   }
 
@@ -58,7 +58,7 @@ class AppConfig {
       case Environment.dev:
         return '133048024494-v9q4qimam6cl70set38o8tdbj3mcr0ss.apps.googleusercontent.com';
       case Environment.prod:
-        return 'your-prod-web-client-id.apps.googleusercontent.com';
+        return '133048024494-v9q4qimam6cl70set38o8tdbj3mcr0ss.apps.googleusercontent.com';
     }
   }
 
@@ -67,20 +67,9 @@ class AppConfig {
       case Environment.dev:
         return '133048024494-s3hl3npre9hrmqeokp4pqp36me559o50.apps.googleusercontent.com';
       case Environment.prod:
-        return 'your-prod-android-client-id.apps.googleusercontent.com';
+        return '133048024494-s3hl3npre9hrmqeokp4pqp36me559o50.apps.googleusercontent.com';
     }
   }
 
-  static String get redirectUrl {
-    if (kIsWeb) {
-      switch (_environment) {
-        case Environment.dev:
-          return 'http://localhost:46151';
-        case Environment.prod:
-          return 'https://reward.com';
-      }
-    } else {
-      return 'com.outsider.reward://oauth2redirect';
-    }
-  }
+ 
 }
