@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+# 권한 설정 추가
+permissions:
+  contents: write  # 저장소 콘텐츠에 대한 쓰기 권한
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -54,12 +58,14 @@ jobs:
           # pubspec.yaml 업데이트
           sed -i "s/version: .*/version: $VERSION_NAME+$NEW_VERSION_CODE/" pubspec.yaml
           
-          # 변경사항 커밋 (선택사항)
+          # 변경사항 커밋
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
           git add pubspec.yaml
           git commit -m "Bump version to $VERSION_NAME+$NEW_VERSION_CODE [skip ci]"
-          git push
+          git push "https://${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Deploy to Google Play
         uses: r0adkll/upload-google-play@v1
