@@ -43,7 +43,7 @@ jobs:
           echo "storeFile=$HOME/keystore.jks" >> android/key.properties
 
       - name: Build appbundle
-        run: flutter build appbundle --release
+        run: flutter build appbundle --dart-define=ENV=prod --release
 
       - name: Increment version
         run: |
