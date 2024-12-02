@@ -25,22 +25,26 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
     developer.log('=== Checking Auth Status ===');
     
     try {
-      // 1. 먼저 토큰 확인 및 설정
+      // 1. 토큰 확인
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final accessToken = AuthService.getCookie('accessToken');
       final refreshToken = AuthService.getCookie('refreshToken');
       
+      developer.log('Tokens found - Access: ${accessToken != null}, Refresh: ${refreshToken != null}');
+
       if (accessToken == null || refreshToken == null) {
         developer.log('No tokens found');
         _handleAuthError();
         return;
       }
 
-      // 2. 토큰을 AuthProvider에 설정
+      // 2. 토큰을 AuthProvider에 설정하고 완료될 때까지 대기
       await authProvider.setTokens(
         accessToken: accessToken,
         refreshToken: refreshToken,
       );
+      
+      developer.log('Tokens set in AuthProvider');
 
       // 3. 토큰이 설정된 후 사용자 정보 요청
       final dio = DioService.getInstance(context);
@@ -48,8 +52,15 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
       
       if (response.statusCode == 200) {
         developer.log('User info retrieved successfully');
-        final currentLocale = Localizations.localeOf(context).languageCode;
-        context.go('/$currentLocale/home');
+        
+        // 4. 약간의 지연을 추가하여 상태 업데이트가 완료되도록 함
+        await Future.delayed(const Duration(milliseconds: 100));
+        
+        if (mounted) {
+          final currentLocale = Localizations.localeOf(context).languageCode;
+          developer.log('Redirecting to /$currentLocale/home');
+          context.go('/$currentLocale/home');
+        }
       } else {
         developer.log('Failed to get user info');
         _handleAuthError();
@@ -61,10 +72,11 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
   }
 
   void _handleAuthError() {
-    developer.log('Handling auth error');
-    final currentLocale = Localizations.localeOf(context).languageCode;
-    developer.log('Redirecting to /$currentLocale/login');
-    context.go('/$currentLocale/login');
+    if (mounted) {
+      final currentLocale = Localizations.localeOf(context).languageCode;
+      developer.log('Redirecting to /$currentLocale/login');
+      context.go('/$currentLocale/login');
+    }
   }
 
   @override

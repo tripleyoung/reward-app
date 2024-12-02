@@ -17,20 +17,29 @@ final router = GoRouter(
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final locale = Localizations.localeOf(context).languageCode;
     
-    // 현재 경로에서 해시(#) 제거
-    final path = state.uri.path.replaceAll('#', '');
+    // 현재 경로에서 해시(#)와 쿼리 파라미터 제거
+    final path = state.uri.path
+        .replaceAll('#', '')
+        .split('?')[0];  // 쿼리 파라미터 제거
     
     if (kDebugMode) {
       print('🔄 Router Redirect:');
       print('Current path: $path');
+      print('Full URI: ${state.uri}');
       print('isAuthenticated: ${authProvider.isAuthenticated}');
       print('Locale: $locale');
+    }
+    
+    // callback 페이지인 경우 locale을 추가하여 리다이렉트
+    if (path == '/auth/callback') {
+      return '/$locale/auth/callback';
     }
     
     // 인증이 필요하지 않은 경로들
     final publicPaths = [
       '/$locale/login',
       '/$locale/signin',
+      '/auth/callback',  // locale 없는 버전도 추가
       '/$locale/auth/callback',
     ];
 
@@ -47,7 +56,7 @@ final router = GoRouter(
         return '/$locale/login';
       }
     } else {
-      if (publicPaths.contains(path)) {
+      if (publicPaths.contains(path) && !path.contains('/auth/callback')) {
         return '/$locale/home';
       }
     }
@@ -67,6 +76,14 @@ final router = GoRouter(
       redirect: (context, state) {
         final locale = state.pathParameters['locale']!;
         return '/$locale/home';
+      },
+    ),
+    // locale이 없는 callback 경로도 추가
+    GoRoute(
+      path: '/auth/callback',
+      redirect: (context, state) {
+        final locale = Localizations.localeOf(context).languageCode;
+        return '/$locale/auth/callback';
       },
     ),
     GoRoute(

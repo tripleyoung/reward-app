@@ -4,6 +4,8 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:reward/models/api_response.dart';
+import 'package:reward/models/token_dto.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../config/app_config.dart';
 import '../../services/dio_service.dart';
@@ -64,92 +66,46 @@ class GoogleLoginButton extends StatelessWidget {
         );
 
         try {
-          if (kDebugMode) print('Attempting Google sign in');
           final GoogleSignInAccount? account = await googleSignIn.signIn();
-
-          if (kDebugMode)
-            print(
-                'Sign in result: ${account != null ? "Success" : "Cancelled"}');
-
           if (account != null) {
-            if (kDebugMode) {
-              print('Google sign in successful');
-              print('Email: ${account.email}');
-              print('Display Name: ${account.displayName}');
-            }
+            final GoogleSignInAuthentication auth = await account.authentication;
+            
+            // Google 토큰으로 백엔드 인증
+            final dio = DioService.getInstance(context);
+            final response = await dio.post(
+              '/members/oauth2/google/callback',
+              data: {
+                'idToken': auth.idToken,
+                'role': role,  // role 파라미터 추가
+              },
+            );
 
-            try {
-              final GoogleSignInAuthentication auth =
-                  await account.authentication;
-              if (kDebugMode) print('Got authentication');
+            final apiResponse = ApiResponse.fromJson(
+              response.data,
+              (json) => TokenDto.fromJson(json as Map<String, dynamic>),
+            );
 
-              if (auth.idToken != null) {
-                if (kDebugMode) {
-                  print('Got ID token');
-                  print('Token length: ${auth.idToken!.length}');
-                }
+            if (apiResponse.success && apiResponse.data != null) {
+              final tokenDto = apiResponse.data!;
+              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              await authProvider.setTokens(
+                accessToken: tokenDto.accessToken,
+                refreshToken: tokenDto.refreshToken,
+              );
 
-                final dio = DioService.getInstance(context);
-                try {
-                  final response = await dio.post(
-                    '/members/oauth2/google/callback',
-                    data: {'idToken': auth.idToken},
-                  );
-
-                  if (kDebugMode)
-                    print('Backend response: ${response.statusCode}');
-
-                  if (response.statusCode == 200) {
-                    if (kDebugMode) {
-                      print('Login successful, response data:');
-                      print('Response data: ${response.data}');
-                      print('Response type: ${response.data.runtimeType}');
-                    }
-                    
-                    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                    
-                    final apiResponse = response.data['data'];
-                    await authProvider.setTokens(
-                      accessToken: apiResponse['accessToken'],
-                      refreshToken: apiResponse['refreshToken'],
-                    );
-                    
-                    if (context.mounted) {
-                      if (kDebugMode) {
-                        print('Auth state after login:');
-                        print('isAuthenticated: ${authProvider.isAuthenticated}');
-                        print('Access token present: ${authProvider.accessToken != null}');
-                      }
-                      
-                      final currentLocale = Localizations.localeOf(context).languageCode;
-                      context.go('/$currentLocale/home');
-                    }
-                  }
-                } catch (e) {
-                  if (kDebugMode) print('API call error: $e');
-                  rethrow;
-                }
-              } else {
-                if (kDebugMode) print('ID token is null');
-                throw Exception('Failed to get ID token');
+              if (context.mounted) {
+                final currentLocale = Localizations.localeOf(context).languageCode;
+                context.go('/$currentLocale/home');
               }
-            } catch (e) {
-              if (kDebugMode) print('Authentication error: $e');
-              rethrow;
             }
-          } else {
-            if (kDebugMode) print('Sign in cancelled by user');
           }
         } catch (e) {
-          if (kDebugMode) print('Google SignIn error: $e');
-          rethrow;
+          if (kDebugMode) print('Google sign in error: $e');
+          // 에러 처리
         }
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('Google login error: $e');
-        if (e is Error) print('Stack trace: ${e.stackTrace}');
-      }
+      if (kDebugMode) print('Login error: $e');
     }
   }
 
