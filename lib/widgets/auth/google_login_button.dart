@@ -13,7 +13,12 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 
 class GoogleLoginButton extends StatelessWidget {
-  const GoogleLoginButton({super.key});
+  final String role;  // 'user', 'business', 'admin' 중 하나
+  
+  const GoogleLoginButton({
+    super.key, 
+    this.role = 'user'  // 기본값은 일반 사용자
+  });
 
   Future<void> _handleGoogleLogin(BuildContext context) async {
     if (kDebugMode) print('Starting Google login process');
@@ -23,9 +28,12 @@ class GoogleLoginButton extends StatelessWidget {
         if (kDebugMode) print('${kIsWeb ? "Web" : "Desktop"} platform detected');
         final baseUrl = AppConfig.apiBaseUrl;
         
+        final platform = kIsWeb ? 'web' : 'desktop';
+        
         final authUrl = Uri.parse('$baseUrl/oauth2/authorization/google').replace(
           queryParameters: {
-            'platform': kIsWeb ? 'web' : 'desktop',
+            'platform': platform,  // 'web' 또는 'desktop'
+            'role': role,         // 'user', 'business', 'admin'
             'app_type': 'app'
           },
         );

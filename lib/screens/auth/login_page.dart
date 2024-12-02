@@ -12,7 +12,8 @@ import '../../widgets/auth/google_login_button.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import 'package:flutter/foundation.dart';
-import '../../models/token_dto.dart';  // 경로 수정
+import '../../models/token_dto.dart'; // 경로 수정
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
   final Locale? locale;
@@ -26,7 +27,40 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _rememberMe = false;  // 이메일/비밀번호 저장 상태
   late Dio _dio;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();  // 저장된 로그인 정보 불러오기
+  }
+
+  // 저장된 로그인 정보 불러오기
+  Future<void> _loadSavedCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _rememberMe = prefs.getBool('rememberMe') ?? false;
+      if (_rememberMe) {
+        _emailController.text = prefs.getString('savedEmail') ?? '';
+        _passwordController.text = prefs.getString('savedPassword') ?? '';
+      }
+    });
+  }
+
+  // 로그인 정보 저장
+  Future<void> _saveCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_rememberMe) {
+      await prefs.setString('savedEmail', _emailController.text);
+      await prefs.setString('savedPassword', _passwordController.text);
+      await prefs.setBool('rememberMe', true);
+    } else {
+      await prefs.remove('savedEmail');
+      await prefs.remove('savedPassword');
+      await prefs.setBool('rememberMe', false);
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -53,8 +87,9 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (mounted && apiResponse.success && apiResponse.data != null) {
-        final tokenDto = apiResponse.data!;
+        await _saveCredentials();  // 로그인 성공 시 credentials 저장
         
+        final tokenDto = apiResponse.data!;
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         await authProvider.setTokens(
           accessToken: tokenDto.accessToken,
@@ -92,7 +127,25 @@ class _LoginPageState extends State<LoginPage> {
           obscureText: true,
           required: true,
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 8),
+        // 이메일/비밀번호 저장 체크박스
+        Row(
+          children: [
+            Checkbox(
+              value: _rememberMe,
+              onChanged: (value) {
+                setState(() {
+                  _rememberMe = value ?? false;
+                });
+              },
+            ),
+            Text(
+              '이메일/비밀번호 저장',  // AppLocalizations에 추가 필요
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
         FilledButton(
           onPressed: _handleLogin,
           style: FilledButton.styleFrom(

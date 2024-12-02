@@ -11,10 +11,10 @@ import 'providers/auth_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   final env = const String.fromEnvironment('ENV', defaultValue: 'dev');
   AppConfig.setEnvironment(env == 'prod' ? Environment.prod : Environment.dev);
-  
+
   if (kDebugMode) {
     print('\n=== App Configuration ===');
     print('🌍 Environment: ${env == 'prod' ? 'Production' : 'Development'}');
