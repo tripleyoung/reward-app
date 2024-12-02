@@ -26,6 +26,11 @@ def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+} else {
+    keystoreProperties.setProperty('storePassword', System.getenv('KEY_STORE_PASSWORD') ?: "")
+    keystoreProperties.setProperty('keyPassword', System.getenv('KEY_PASSWORD') ?: "")
+    keystoreProperties.setProperty('keyAlias', System.getenv('KEY_ALIAS') ?: "")
+    keystoreProperties.setProperty('storeFile', System.getenv('KEY_STORE_FILE') ?: "")
 }
 
 android {
@@ -57,16 +62,18 @@ android {
 
     signingConfigs {
         release {
-            keyAlias keystoreProperties['keyAlias']
-            keyPassword keystoreProperties['keyPassword']
-            storeFile file(keystoreProperties['storeFile'])
-            storePassword keystoreProperties['storePassword']
+            if (keystoreProperties['storeFile']) {
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
         }
     }
 
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            signingConfig keystoreProperties['storeFile'] ? signingConfigs.release : null
         }
     }
 }
