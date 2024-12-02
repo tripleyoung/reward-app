@@ -57,7 +57,7 @@ class GoogleLoginButton extends StatelessWidget {
       } else {
         if (kDebugMode) print('Mobile platform detected');
         final GoogleSignIn googleSignIn = GoogleSignIn(
-          serverClientId: AppConfig.googleClientId,
+          serverClientId: AppConfig.googleWebClientId,
           scopes: [
             'email',
             'profile',

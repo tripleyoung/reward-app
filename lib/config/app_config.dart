@@ -62,14 +62,13 @@ class AppConfig {
     return '/api/v1';
   }
 
+  static const String googleWebClientId = '133048024494-v9q4qimam6cl70set38o8tdbj3mcr0ss.apps.googleusercontent.com';
+  static const String googleAndroidClientId = '133048024494-s3hl3npre9hrmqeokp4pqp36me559o50.apps.googleusercontent.com';
+
   static String get googleClientId {
-    if (kIsWeb) {
-      return _getWebGoogleClientId();
-    } else if (isDesktop) {
-      return _getDesktopGoogleClientId();
-    } else {
-      return _getMobileGoogleClientId();
-    }
+    if (kIsWeb) return googleWebClientId;
+    if (Platform.isAndroid) return googleAndroidClientId;
+    return googleWebClientId;  // 기본값
   }
 
   static String _getWebGoogleClientId() {
