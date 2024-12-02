@@ -10,6 +10,11 @@ import 'config/app_config.dart';
 import 'providers/auth_provider.dart';
 
 void main() async {
+
+   const String env = String.fromEnvironment('ENV', defaultValue: 'dev');
+  AppConfig.setEnvironment(
+    env == 'prod' ? Environment.prod : Environment.dev,
+  );
   WidgetsFlutterBinding.ensureInitialized();
   
   final authProvider = AuthProvider();
