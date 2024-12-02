@@ -26,17 +26,12 @@ class GoogleLoginButton extends StatelessWidget {
         
         // 현재 URL을 기반으로 리다이렉트 URI 구성
         final currentUrl = Uri.base;
-        final redirectUri = Uri(
-          scheme: currentUrl.scheme,
-          host: currentUrl.host,
-          port: currentUrl.port,
-          path: '/$currentLocale/auth/callback',
-        ).toString();
+        final frontendDomain = '${currentUrl.scheme}://${currentUrl.host}${currentUrl.port != 80 && currentUrl.port != 443 ? ':${currentUrl.port}' : ''}';
         
         final authUrl = Uri.parse('$baseUrl/oauth2/authorization/google').replace(
           queryParameters: {
             'platform': 'web',
-            'redirect_uri': redirectUri
+            'redirect_uri': '$frontendDomain/$currentLocale/auth/callback'
           },
         );
 
