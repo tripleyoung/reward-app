@@ -31,14 +31,12 @@ class AuthProvider extends ChangeNotifier {
       print('isAuthenticated: $_isAuthenticated');
     }
 
-    if (!kIsWeb) {
       if (accessToken != null && refreshToken != null) {
         await AuthService.saveTokens(
           accessToken: accessToken,
           refreshToken: refreshToken,
         );
       }
-    }
     
     notifyListeners();
   }
