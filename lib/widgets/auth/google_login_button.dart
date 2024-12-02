@@ -30,7 +30,7 @@ class GoogleLoginButton extends StatelessWidget {
         if (await canLaunchUrl(uri)) {
           await launchUrl(
             uri,
-            mode: LaunchMode.platformDefault,
+           webOnlyWindowName: '_self',  // 현재 창에서 열기
           );
         }
         return;
