@@ -22,18 +22,28 @@ class GoogleLoginButton extends StatelessWidget {
       if (kIsWeb) {
         if (kDebugMode) print('Web platform detected');
         final baseUrl = AppConfig.apiBaseUrl;
+        final currentLocale = Localizations.localeOf(context).languageCode;
         
-        // OAuth2 인증 URL 구성 (platform 파라미터만 추가)
+        // 현재 URL을 기반으로 리다이렉트 URI 구성
+        final currentUrl = Uri.base;
+        final redirectUri = Uri(
+          scheme: currentUrl.scheme,
+          host: currentUrl.host,
+          port: currentUrl.port,
+          path: '/$currentLocale/auth/callback',
+        ).toString();
+        
         final authUrl = Uri.parse('$baseUrl/oauth2/authorization/google').replace(
           queryParameters: {
-            'platform': 'web'
+            'platform': 'web',
+            'redirect_uri': redirectUri
           },
         );
 
         if (await canLaunchUrl(authUrl)) {
           await launchUrl(
             authUrl,
-            webOnlyWindowName: '_self',  // 현재 창에서 열기
+            webOnlyWindowName: '_self',
           );
         }
         return;
