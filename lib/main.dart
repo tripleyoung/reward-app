@@ -16,10 +16,12 @@ void main() async {
   AppConfig.setEnvironment(env == 'prod' ? Environment.prod : Environment.dev);
   
   if (kDebugMode) {
-    print('🌍 Current Environment: ${env == 'prod' ? 'Production' : 'Development'}');
-    print('🌐 API URL: ${AppConfig.apiBaseUrl}');
+    print('\n=== App Configuration ===');
+    print('🌍 Environment: ${env == 'prod' ? 'Production' : 'Development'}');
+    print('🌐 Backend URL: ${AppConfig.apiBaseUrl}${AppConfig.apiPath}');
+    print('========================\n');
   }
-  
+
   final authProvider = AuthProvider();
   await authProvider.init();
 

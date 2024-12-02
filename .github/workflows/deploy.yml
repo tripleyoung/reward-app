@@ -22,7 +22,7 @@ jobs:
       run: flutter pub get
 
     - name: Build web
-      run: flutter build web --dart-define=ENV=prod--release   
+      run: flutter build web --dart-define=ENV=prod  
     - name: Deploy to Vercel
       run: |
         mv build/web build/reward-app
