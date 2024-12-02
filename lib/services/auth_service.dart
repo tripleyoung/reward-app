@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:developer' as developer;
 import 'web_storage.dart' if (dart.library.io) 'mobile_storage.dart';
-import 'config/app_config.dart';
 
 class AuthService {
   static const String _accessTokenKey = 'access_token';
