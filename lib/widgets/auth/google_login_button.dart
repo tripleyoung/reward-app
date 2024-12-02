@@ -19,27 +19,29 @@ class GoogleLoginButton extends StatelessWidget {
     if (kDebugMode) print('Starting Google login process');
 
     try {
-      if (kIsWeb) {
-        if (kDebugMode) print('Web platform detected');
+      if (kIsWeb || AppConfig.isDesktop) {
+        if (kDebugMode) print('${kIsWeb ? "Web" : "Desktop"} platform detected');
         final baseUrl = AppConfig.apiBaseUrl;
-        final currentLocale = Localizations.localeOf(context).languageCode;
-        
-        // 현재 URL을 기반으로 리다이렉트 URI 구성
-        final currentUrl = Uri.base;
-        final frontendDomain = '${currentUrl.scheme}://${currentUrl.host}${currentUrl.port != 80 && currentUrl.port != 443 ? ':${currentUrl.port}' : ''}';
         
         final authUrl = Uri.parse('$baseUrl/oauth2/authorization/google').replace(
           queryParameters: {
-            'platform': 'web',
-            'redirect_uri': '$frontendDomain/$currentLocale/auth/callback'
+            'platform': kIsWeb ? 'web' : 'desktop',
+            'app_type': 'app'
           },
         );
 
         if (await canLaunchUrl(authUrl)) {
-          await launchUrl(
-            authUrl,
-            webOnlyWindowName: '_self',
-          );
+          if (kIsWeb) {
+            await launchUrl(
+              authUrl,
+              webOnlyWindowName: '_self',
+            );
+          } else {
+            await launchUrl(
+              authUrl,
+              mode: LaunchMode.platformDefault,
+            );
+          }
         }
         return;
       } else {

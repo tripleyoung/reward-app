@@ -1,8 +1,10 @@
+import 'package:reward/config/app_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:developer' as developer;
 import 'web_storage.dart' if (dart.library.io) 'mobile_storage.dart';
+import 'config/app_config.dart';
 
 class AuthService {
   static const String _accessTokenKey = 'access_token';
@@ -28,6 +30,11 @@ class AuthService {
     if (kIsWeb) {
       WebStorage.setItem(_accessTokenKey, accessToken);
       WebStorage.setItem(_refreshTokenKey, refreshToken);
+    } else if (AppConfig.isDesktop) {
+      // 데스크톱의 경우 secure storage 대신 shared preferences 사용
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_accessTokenKey, accessToken);
+      await prefs.setString(_refreshTokenKey, refreshToken);
     } else {
       await _secureStorage.write(key: _accessTokenKey, value: accessToken);
       await _secureStorage.write(key: _refreshTokenKey, value: refreshToken);
@@ -38,6 +45,9 @@ class AuthService {
   static Future<String?> getToken() async {
     if (kIsWeb) {
       return WebStorage.getItem(_accessTokenKey);
+    } else if (AppConfig.isDesktop) {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(_accessTokenKey);
     } else {
       return await _secureStorage.read(key: _accessTokenKey);
     }

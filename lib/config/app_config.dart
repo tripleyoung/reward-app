@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'dart:io' show Platform;
 
 enum Environment {
@@ -13,11 +13,28 @@ class AppConfig {
     _environment = env;
   }
 
+  static bool get isDesktop => !kIsWeb && (
+    defaultTargetPlatform == TargetPlatform.windows ||
+    defaultTargetPlatform == TargetPlatform.linux ||
+    defaultTargetPlatform == TargetPlatform.macOS
+  );
+
   static String get apiBaseUrl {
     if (kIsWeb) {
       return _getWebBaseUrl();
+    } else if (isDesktop) {
+      return _getDesktopBaseUrl();
     } else {
       return _getMobileBaseUrl();
+    }
+  }
+
+  static String _getDesktopBaseUrl() {
+    switch (_environment) {
+      case Environment.dev:
+        return 'http://localhost:8080';
+      case Environment.prod:
+        return 'https://back.reward-factory.shop:8765';
     }
   }
 
@@ -48,12 +65,23 @@ class AppConfig {
   static String get googleClientId {
     if (kIsWeb) {
       return _getWebGoogleClientId();
+    } else if (isDesktop) {
+      return _getDesktopGoogleClientId();
     } else {
-      return _getWebGoogleClientId();
+      return _getMobileGoogleClientId();
     }
   }
 
   static String _getWebGoogleClientId() {
+    switch (_environment) {
+      case Environment.dev:
+        return '133048024494-v9q4qimam6cl70set38o8tdbj3mcr0ss.apps.googleusercontent.com';
+      case Environment.prod:
+        return '133048024494-v9q4qimam6cl70set38o8tdbj3mcr0ss.apps.googleusercontent.com';
+    }
+  }
+
+  static String _getDesktopGoogleClientId() {
     switch (_environment) {
       case Environment.dev:
         return '133048024494-v9q4qimam6cl70set38o8tdbj3mcr0ss.apps.googleusercontent.com';
