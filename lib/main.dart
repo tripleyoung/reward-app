@@ -23,8 +23,7 @@ void main() async {
   }
 
   final authProvider = AuthProvider();
-  await authProvider.init();
-
+   await authProvider.initializeAuth();  // 앱 시작 시 인증 상태 초기화
   runApp(
     MultiProvider(
       providers: [

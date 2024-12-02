@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:reward/services/dio_service.dart';
 import '../services/auth_service.dart';
 import 'package:dio/dio.dart';
 import '../models/api_response.dart';
@@ -10,21 +13,70 @@ class AuthProvider extends ChangeNotifier {
   bool _isAuthenticated = false;
   String? _accessToken;
   String? _refreshToken;
+  Timer? _refreshTimer;
 
   bool get isAuthenticated => _isAuthenticated;
   String? get accessToken => _accessToken;
   String? get refreshToken => _refreshToken;
 
+  void startTokenRefreshTimer() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(
+      const Duration(minutes: 14),  // 15분 만료 토큰의 경우
+      (_) => _refreshTokens()
+    );
+  }
+
+  Future<void> _refreshTokens() async {
+    if (_refreshToken == null) return;
+
+    try {
+      final dio = Dio(BaseOptions(
+        baseUrl: '${AppConfig.apiBaseUrl}${AppConfig.apiPath}',
+      ));
+      final response = await dio.post(
+        '/members/refresh',
+        options: Options(
+          headers: {
+            'Authorization-Refresh': 'Bearer $_refreshToken',
+          },
+        ),
+      );
+
+      final apiResponse = ApiResponse.fromJson(
+        response.data,
+        (json) => TokenDto.fromJson(json as Map<String, dynamic>),
+      );
+
+      if (apiResponse.success && apiResponse.data != null) {
+        await setTokens(
+          accessToken: apiResponse.data?.accessToken,
+          refreshToken: apiResponse.data?.refreshToken,
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Token refresh failed: $e');
+      }
+      // 토큰 갱신 실패 시 로그아웃
+      await logout();
+    }
+  }
+
   Future<void> setTokens({String? accessToken, String? refreshToken}) async {
+    _accessToken = accessToken;
+    _refreshToken = refreshToken;
+    _isAuthenticated = accessToken != null;
+
+    if (accessToken != null) {
+      startTokenRefreshTimer();  // 토큰 설정 시 자동 갱신 시작
+    }
+
     if (kDebugMode) {
       print('Setting tokens:');
       print('Access Token: ${accessToken != null}');
       print('Refresh Token: ${refreshToken != null}');
     }
-
-    _accessToken = accessToken;
-    _refreshToken = refreshToken;
-    _isAuthenticated = accessToken != null;
 
     if (kDebugMode) {
       print('Auth state after setting tokens:');
@@ -42,6 +94,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    _refreshTimer?.cancel();  // 타이머 중지
     _accessToken = null;
     _refreshToken = null;
     _isAuthenticated = false;
@@ -135,11 +188,19 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> init() async {
-    // 저장된 토큰 불러오기
-    _accessToken = await AuthService.getToken();
-    _refreshToken = await AuthService.getRefreshToken();
-    _isAuthenticated = _accessToken != null;
+
+
+  // 앱 시작 시 호출되는 초기화 메서드
+  Future<void> initializeAuth() async {
+    final accessToken = await AuthService.getToken();
+    final refreshToken = await AuthService.getRefreshToken();
+    
+    if (accessToken != null && refreshToken != null) {
+      await setTokens(
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+      );
+    }
     notifyListeners();
   }
 }

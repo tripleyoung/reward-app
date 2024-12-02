@@ -139,39 +139,7 @@ class DioService {
     }
   }
 
-  // 토큰 갱신 처리
-  static Future<Response?> _handleTokenRefresh(
-    DioException error,
-    Dio dio,
-    BuildContext context,
-  ) async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    try {
-      await authProvider.refreshAuthToken();
-      if (authProvider.isAuthenticated) {
-        final opts = Options(
-          method: error.requestOptions.method,
-          headers: error.requestOptions.headers,
-        );
 
-        if (!kIsWeb && authProvider.accessToken != null) {
-          opts.headers?['Authorization'] = 'Bearer ${authProvider.accessToken}';
-        }
-
-        return await dio.request(
-          error.requestOptions.path,
-          options: opts,
-          data: error.requestOptions.data,
-          queryParameters: error.requestOptions.queryParameters,
-        );
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Token refresh failed: $e');
-      }
-    }
-    return null;
-  }
 
   static Dio getInstance(BuildContext context) {
     if (kDebugMode) {
