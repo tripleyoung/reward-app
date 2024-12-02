@@ -10,12 +10,15 @@ import 'config/app_config.dart';
 import 'providers/auth_provider.dart';
 
 void main() async {
-
-   const String env = String.fromEnvironment('ENV', defaultValue: 'dev');
-  AppConfig.setEnvironment(
-    env == 'prod' ? Environment.prod : Environment.dev,
-  );
   WidgetsFlutterBinding.ensureInitialized();
+  
+  final env = const String.fromEnvironment('ENV', defaultValue: 'dev');
+  AppConfig.setEnvironment(env == 'prod' ? Environment.prod : Environment.dev);
+  
+  if (kDebugMode) {
+    print('🌍 Current Environment: ${env == 'prod' ? 'Production' : 'Development'}');
+    print('🌐 API URL: ${AppConfig.apiBaseUrl}');
+  }
   
   final authProvider = AuthProvider();
   await authProvider.init();
