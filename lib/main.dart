@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -39,7 +40,13 @@ void main() async {
   // 로컬 서버 시작
   startLocalServer(authProvider);
 }
-
+Future<void> precacheFonts() async {
+  final fontLoader = FontLoader('NotoSansKR');
+  fontLoader.addFont(rootBundle.load('assets/fonts/NotoSansKR-Regular.ttf'));
+  fontLoader.addFont(rootBundle.load('assets/fonts/NotoSansKR-Medium.ttf'));
+  fontLoader.addFont(rootBundle.load('assets/fonts/NotoSansKR-Bold.ttf'));
+  await fontLoader.load();
+}
 void startLocalServer(AuthProvider authProvider) async {
   final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 8765);
   print('Listening on localhost:${server.port}');
@@ -115,6 +122,15 @@ class MyApp extends StatelessWidget {
           theme: ThemeData(
             useMaterial3: true,
             colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+            fontFamily: 'NotoSansKR',  // 기본 폰트 설정
+            textTheme: const TextTheme(
+              bodyLarge: TextStyle(
+                fontFamily: 'NotoSansKR',
+                fontSize: 16,
+                height: 1.5,
+              ),
+              // 다른 텍스트 스타일도 필요에 따라 설정
+            ),
           ),
         );
       },
