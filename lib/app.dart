@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'screens/auth/login_page.dart';
-import 'screens/auth/signin_page.dart';
-import 'screens/home/home_page.dart';
 import 'router/app_router.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   final GoRouter _router = router;
+
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {

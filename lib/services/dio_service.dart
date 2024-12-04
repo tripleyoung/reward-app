@@ -4,8 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../config/app_config.dart';
-import 'dart:developer' as developer;
-import 'auth_service.dart';
 
 class DioService {
   // 토스트 메시지 표시 유틸리티 메서드

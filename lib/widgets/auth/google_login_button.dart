@@ -10,7 +10,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../config/app_config.dart';
 import '../../services/dio_service.dart';
 import '../../constants/styles.dart';
-import 'dart:developer' as developer;
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 
@@ -25,8 +24,9 @@ class GoogleLoginButton extends StatelessWidget {
 
     try {
       if (kIsWeb || AppConfig.isDesktop) {
-        if (kDebugMode)
+        if (kDebugMode) {
           print('${kIsWeb ? "Web" : "Desktop"} platform detected');
+        }
         final baseUrl = AppConfig.apiBaseUrl;
 
         final platform = AppConfig.isDesktop ? 'desktop' : 'web';
@@ -143,7 +143,7 @@ class GoogleLoginButton extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              AppLocalizations.of(context)!.signInWithGoogle,
+              AppLocalizations.of(context).signInWithGoogle,
               style: const TextStyle(
                 color: Colors.black87,
                 fontSize: 14,

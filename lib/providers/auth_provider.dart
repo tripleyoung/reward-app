@@ -1,8 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:reward/services/dio_service.dart';
 import '../services/auth_service.dart';
 import 'package:dio/dio.dart';
 import '../models/api_response.dart';

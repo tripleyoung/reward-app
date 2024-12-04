@@ -27,5 +27,7 @@
   "signupFail": "Sign up failed",
   "loginFail": "Login failed",
   "loginSuccess": "Login successful",
-  "networkError": "Network error occurred. Please try again."
+  "networkError": "Network error occurred. Please try again.",
+  "rememberCredentials": "Remember Email/Password",
+  "loginDescription": "Login is required to use the reward service."
 } 

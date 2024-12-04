@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import '../../config/app_config.dart';
 import '../../constants/styles.dart';
 import '../../models/api_response.dart';
 import '../../widgets/common/filled_text_field.dart';
@@ -8,8 +6,6 @@ import 'package:dio/dio.dart';
 import 'dart:async';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import '../../widgets/common/language_dropdown.dart';
-import 'package:provider/provider.dart';
-import '../../providers/locale_provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/dio_service.dart';
 
@@ -48,7 +44,7 @@ class _SignInPageState extends State<SignInPage> {
         children: [
           const SizedBox(height: 32),
           Text(
-            AppLocalizations.of(context)!.appTitle,
+            AppLocalizations.of(context).appTitle,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onPrimary,
                   fontWeight: FontWeight.bold,
@@ -56,7 +52,7 @@ class _SignInPageState extends State<SignInPage> {
           ),
           const Spacer(),
           Text(
-            AppLocalizations.of(context)!.signUpTitle,
+            AppLocalizations.of(context).signUpTitle,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: Theme.of(context).colorScheme.onPrimary,
                 ),
@@ -81,7 +77,7 @@ class _SignInPageState extends State<SignInPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            AppLocalizations.of(context)!.signUpTitle,
+            AppLocalizations.of(context).signUpTitle,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -89,7 +85,7 @@ class _SignInPageState extends State<SignInPage> {
           const SizedBox(height: 40),
           FilledTextField(
             controller: _nameController,
-            label: AppLocalizations.of(context)!.nameLabel,
+            label: AppLocalizations.of(context).nameLabel,
             required: true,
           ),
           const SizedBox(height: 16),
@@ -99,7 +95,7 @@ class _SignInPageState extends State<SignInPage> {
                 flex: 2,
                 child: FilledTextField(
                   controller: _emailController,
-                  label: AppLocalizations.of(context)!.emailLabel,
+                  label: AppLocalizations.of(context).emailLabel,
                   keyboardType: TextInputType.emailAddress,
                   required: true,
                 ),
@@ -110,12 +106,12 @@ class _SignInPageState extends State<SignInPage> {
                   onPressed: _handleEmailSend,
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 0),
-                    minimumSize: Size.fromHeight(kElementHeight),
+                    minimumSize: const Size.fromHeight(kElementHeight),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(kBorderRadius),
                     ),
                   ),
-                  child: Text(AppLocalizations.of(context)!.verifyEmailButton),
+                  child: Text(AppLocalizations.of(context).verifyEmailButton),
                 ),
               ),
             ],
@@ -127,7 +123,7 @@ class _SignInPageState extends State<SignInPage> {
                 flex: 2,
                 child: FilledTextField(
                   controller: _verificationCodeController,
-                  label: AppLocalizations.of(context)!.verificationCodeLabel,
+                  label: AppLocalizations.of(context).verificationCodeLabel,
                   required: true,
                 ),
               ),
@@ -139,12 +135,12 @@ class _SignInPageState extends State<SignInPage> {
                       onPressed: _handleCodeVerification,
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 0),
-                        minimumSize: Size.fromHeight(kElementHeight),
+                        minimumSize: const Size.fromHeight(kElementHeight),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(kBorderRadius),
                         ),
                       ),
-                      child: Text(AppLocalizations.of(context)!.verifyCodeButton),
+                      child: Text(AppLocalizations.of(context).verifyCodeButton),
                     ),
                     if (_timeLeft > 0) ...[
                       const SizedBox(height: 4),
@@ -164,14 +160,14 @@ class _SignInPageState extends State<SignInPage> {
           const SizedBox(height: 16),
           FilledTextField(
             controller: _passwordController,
-            label: AppLocalizations.of(context)!.passwordLabel,
+            label: AppLocalizations.of(context).passwordLabel,
             obscureText: true,
             required: true,
           ),
           const SizedBox(height: 16),
           FilledTextField(
             controller: _nicknameController,
-            label: AppLocalizations.of(context)!.nicknameLabel,
+            label: AppLocalizations.of(context).nicknameLabel,
             required: true,
           ),
           const SizedBox(height: 24),
@@ -179,12 +175,12 @@ class _SignInPageState extends State<SignInPage> {
             onPressed: _handleSubmit,
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 0),
-              minimumSize: Size.fromHeight(kElementHeight),
+              minimumSize: const Size.fromHeight(kElementHeight),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(kBorderRadius),
               ),
             ),
-            child: Text(AppLocalizations.of(context)!.signUpButton),
+            child: Text(AppLocalizations.of(context).signUpButton),
           ),
         ],
       ),
@@ -334,7 +330,7 @@ class _SignInPageState extends State<SignInPage> {
                           context.go('/$currentLocale/login');
                         },
                         icon: const Icon(Icons.arrow_back),
-                        label: Text(AppLocalizations.of(context)!.loginTitle),
+                        label: Text(AppLocalizations.of(context).loginTitle),
                       ),
                     ),
                     Center(

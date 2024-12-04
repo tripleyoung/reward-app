@@ -2,7 +2,6 @@ import 'package:reward/config/app_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'dart:developer' as developer;
 import 'web_storage.dart' if (dart.library.io) 'mobile_storage.dart';
 
 class AuthService {
@@ -10,7 +9,7 @@ class AuthService {
   static const String _refreshTokenKey = 'refresh_token';
 
   // 모바일용 보안 저장소
-  static final _secureStorage = FlutterSecureStorage(
+  static const _secureStorage = FlutterSecureStorage(
     aOptions: AndroidOptions(
       encryptedSharedPreferences: true,
     ),

@@ -5,10 +5,8 @@ import '../screens/auth/login_page.dart';
 import '../screens/auth/signin_page.dart';
 import '../screens/auth/auth_callback_page.dart';
 import '../screens/home/home_page.dart';
-import '../services/auth_service.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import 'dart:developer' as developer;
 
 final router = GoRouter(
   initialLocation: '/',

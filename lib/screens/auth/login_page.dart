@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:dio/dio.dart';
-import '../../config/app_config.dart';
 import '../../constants/styles.dart';
 import '../../models/api_response.dart';
 import '../../widgets/common/filled_text_field.dart';
@@ -161,14 +160,14 @@ class _LoginPageState extends State<LoginPage> {
         const SizedBox(height: 40),
         FilledTextField(
           controller: _emailController,
-          label: AppLocalizations.of(context)!.emailLabel,
+          label: AppLocalizations.of(context).emailLabel,
           keyboardType: TextInputType.emailAddress,
           required: true,
         ),
         const SizedBox(height: 16),
         FilledTextField(
           controller: _passwordController,
-          label: AppLocalizations.of(context)!.passwordLabel,
+          label: AppLocalizations.of(context).passwordLabel,
           obscureText: true,
           required: true,
         ),
@@ -185,7 +184,7 @@ class _LoginPageState extends State<LoginPage> {
               },
             ),
             Text(
-              '이메일/비밀번호 저장',  // AppLocalizations에 추가 필요
+              AppLocalizations.of(context).rememberCredentials,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ],
@@ -195,12 +194,12 @@ class _LoginPageState extends State<LoginPage> {
           onPressed: _handleLogin,
           style: FilledButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 0),
-            minimumSize: Size.fromHeight(kElementHeight),
+            minimumSize: const Size.fromHeight(kElementHeight),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(kBorderRadius),
             ),
           ),
-          child: Text(AppLocalizations.of(context)!.loginButton),
+          child: Text(AppLocalizations.of(context).loginButton),
         ),
         const SizedBox(height: 16),
         const GoogleLoginButton(),
@@ -208,7 +207,7 @@ class _LoginPageState extends State<LoginPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(AppLocalizations.of(context)!.noAccount),
+            Text(AppLocalizations.of(context).noAccount),
             TextButton(
               onPressed: () {
                 final currentLocale =
@@ -218,7 +217,7 @@ class _LoginPageState extends State<LoginPage> {
                 context.go('/$currentLocale/signin');
               },
               child: Text(
-                AppLocalizations.of(context)!.signUpButton,
+                AppLocalizations.of(context).signUpButton,
                 style: TextStyle(color: Theme.of(context).colorScheme.primary),
               ),
             ),
@@ -236,7 +235,7 @@ class _LoginPageState extends State<LoginPage> {
         children: [
           const SizedBox(height: 32),
           Text(
-            AppLocalizations.of(context)!.appTitle,
+            AppLocalizations.of(context).appTitle,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onPrimary,
                   fontWeight: FontWeight.bold,
@@ -244,14 +243,14 @@ class _LoginPageState extends State<LoginPage> {
           ),
           const Spacer(),
           Text(
-            AppLocalizations.of(context)!.loginTitle,
+            AppLocalizations.of(context).loginTitle,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: Theme.of(context).colorScheme.onPrimary,
                 ),
           ),
           const SizedBox(height: 16),
           Text(
-            '리워드 서비스를 이용하려면 로그인이 필요합니다.',
+            AppLocalizations.of(context).loginDescription,
             style: TextStyle(
               color: Theme.of(context).colorScheme.onPrimary.withOpacity(0.8),
             ),
@@ -325,7 +324,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
               const SizedBox(width: 8),
               Text(
-                AppLocalizations.of(context)!.appTitle,
+                AppLocalizations.of(context).appTitle,
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -334,9 +333,9 @@ class _LoginPageState extends State<LoginPage> {
             ],
           ),
           centerTitle: false, // 왼쪽 정렬
-          actions: [
-            const LanguageDropdown(),
-            const SizedBox(width: 8),
+          actions: const [
+            LanguageDropdown(),
+            SizedBox(width: 8),
           ],
           backgroundColor: Colors.transparent,
           elevation: 0,

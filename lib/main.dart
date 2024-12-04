@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -15,7 +14,7 @@ import 'providers/auth_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final env = const String.fromEnvironment('ENV', defaultValue: 'dev');
+  const env = String.fromEnvironment('ENV', defaultValue: 'dev');
   AppConfig.setEnvironment(env == 'prod' ? Environment.prod : Environment.dev);
 
   if (kDebugMode) {

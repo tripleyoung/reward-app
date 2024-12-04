@@ -39,7 +39,7 @@ class _FilledTextFieldState extends State<FilledTextField> {
       decoration: InputDecoration(
         labelText: widget.label + (widget.required ? ' *' : ''),
         filled: true,
-        fillColor: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.3),
+        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(kBorderRadius),
           borderSide: BorderSide.none,
