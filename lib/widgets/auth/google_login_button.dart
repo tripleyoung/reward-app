@@ -15,32 +15,37 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 
 class GoogleLoginButton extends StatelessWidget {
-  final String role;  // 'user', 'business', 'admin' 중 하나
-  
-  const GoogleLoginButton({
-    super.key, 
-    this.role = 'user'  // 기본값은 일반 사용자
-  });
+  final String role; // 'user', 'business', 'admin' 중 하나
+
+  const GoogleLoginButton({super.key, this.role = 'user' // 기본값은 일반 사용자
+      });
 
   Future<void> _handleGoogleLogin(BuildContext context) async {
     if (kDebugMode) print('Starting Google login process');
 
     try {
       if (kIsWeb || AppConfig.isDesktop) {
-        if (kDebugMode) print('${kIsWeb ? "Web" : "Desktop"} platform detected');
+        if (kDebugMode)
+          print('${kIsWeb ? "Web" : "Desktop"} platform detected');
         final baseUrl = AppConfig.apiBaseUrl;
-        
-        final platform = kIsWeb ? 'web' : 'desktop';
-        
-        final authUrl = Uri.parse('$baseUrl/oauth2/authorization/google').replace(
+
+        final platform = AppConfig.isDesktop ? 'desktop' : 'web';
+
+        final authUrl =
+            Uri.parse('$baseUrl/oauth2/authorization/google').replace(
           queryParameters: {
-            'platform': platform,  // 'web' 또는 'desktop'
-            'role': role,         // 'user', 'business', 'admin'
+            'platform': platform, // 'desktop' 또는 'web'
+            'role': role, // 'user', 'business', 'admin'
             'app_type': 'app'
           },
         );
 
-        if (await canLaunchUrl(authUrl)) {
+        if (AppConfig.isDesktop) {
+          await launchUrl(
+            authUrl,
+            mode: LaunchMode.externalApplication,
+          );
+        } else if (await canLaunchUrl(authUrl)) {
           if (kIsWeb) {
             await launchUrl(
               authUrl,
@@ -68,18 +73,19 @@ class GoogleLoginButton extends StatelessWidget {
         try {
           final GoogleSignInAccount? account = await googleSignIn.signIn();
           if (account != null) {
-            final GoogleSignInAuthentication auth = await account.authentication;
-            
+            final GoogleSignInAuthentication auth =
+                await account.authentication;
+
             // Google 토큰으로 백엔드 인증
             final dio = DioService.getInstance(context);
             final response = await dio.post(
               '/members/oauth2/google/callback',
               data: {
                 'idToken': auth.idToken,
-                'role': role,  // role 파라미터 추가
+                'role': role, // role 파라미터 추가
               },
             );
-
+            if (kDebugMode) print(response.data);
             final apiResponse = ApiResponse.fromJson(
               response.data,
               (json) => TokenDto.fromJson(json as Map<String, dynamic>),
@@ -87,14 +93,16 @@ class GoogleLoginButton extends StatelessWidget {
 
             if (apiResponse.success && apiResponse.data != null) {
               final tokenDto = apiResponse.data!;
-              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+              final authProvider =
+                  Provider.of<AuthProvider>(context, listen: false);
               await authProvider.setTokens(
                 accessToken: tokenDto.accessToken,
                 refreshToken: tokenDto.refreshToken,
               );
 
               if (context.mounted) {
-                final currentLocale = Localizations.localeOf(context).languageCode;
+                final currentLocale =
+                    Localizations.localeOf(context).languageCode;
                 context.go('/$currentLocale/home');
               }
             }

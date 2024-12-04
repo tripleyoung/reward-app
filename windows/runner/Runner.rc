@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "reward" "\0"
+            VALUE "CompanyName", "com.outsider" "\0"
+            VALUE "FileDescription", "reward_app" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "reward" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2024 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "reward.exe" "\0"
-            VALUE "ProductName", "reward" "\0"
+            VALUE "InternalName", "reward_app" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2024 com.outsider. All rights reserved." "\0"
+            VALUE "OriginalFilename", "reward_app.exe" "\0"
+            VALUE "ProductName", "reward_app" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
