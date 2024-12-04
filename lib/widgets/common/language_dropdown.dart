@@ -19,7 +19,6 @@ class LanguageDropdown extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('🇰🇷', style: TextStyle(fontSize: 20)),
                   const SizedBox(width: 8),
                   Text(
                     '한국어',
@@ -43,7 +42,6 @@ class LanguageDropdown extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('🇺🇸', style: TextStyle(fontSize: 20)),
                   const SizedBox(width: 8),
                   Text(
                     'English',

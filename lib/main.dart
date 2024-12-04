@@ -10,6 +10,7 @@ import 'router/app_router.dart';
 import 'providers/locale_provider.dart';
 import 'config/app_config.dart';
 import 'providers/auth_provider.dart';
+import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,6 +39,9 @@ void main() async {
 
   // 로컬 서버 시작
   startLocalServer(authProvider);
+
+  // 웹 URL 전략 설정 (옵션)
+  setUrlStrategy(PathUrlStrategy());
 }
 Future<void> precacheFonts() async {
   final fontLoader = FontLoader('NotoSansKR');
@@ -131,6 +135,11 @@ class MyApp extends StatelessWidget {
               // 다른 텍스트 스타일도 필요에 따라 설정
             ),
           ),
+          title: '리워드 팩토리', // 기본 타이틀
+          onGenerateTitle: (context) {
+            // 현재 로케일에 따라 타이틀 반환
+            return AppLocalizations.of(context)!.appTitle;
+          },
         );
       },
     );

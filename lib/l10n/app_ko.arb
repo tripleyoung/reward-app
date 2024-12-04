@@ -1,6 +1,6 @@
 {
   "@@locale": "ko",
-  "appTitle": "리워드",
+  "appTitle": "리워드 팩토리",
   
   "loginTitle": "로그인",
   "emailLabel": "이메일",
@@ -35,4 +35,5 @@
   "loginFail": "로그인에 실패했습니다",
   "rememberCredentials": "이메일/비밀번호 저장",
   "loginDescription": "리워드 서비스를 이용하려면 로그인이 필요합니다."
+  
 } 
