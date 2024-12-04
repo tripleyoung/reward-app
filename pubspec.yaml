@@ -22,6 +22,7 @@ dependencies:
   webview_flutter: ^4.4.2
   universal_html: ^2.2.4
   flutter_secure_storage: ^9.0.0
+  uni_links: ^0.5.1
 
 dev_dependencies:
   flutter_test:
@@ -34,3 +35,12 @@ flutter:
 
   assets:
     - assets/images/
+
+  fonts:
+    - family: NotoSansKR
+      fonts:
+        - asset: assets/fonts/NotoSansKR-Regular.ttf
+        - asset: assets/fonts/NotoSansKR-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/NotoSansKR-Bold.ttf
+          weight: 700

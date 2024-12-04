@@ -14,6 +14,8 @@ import '../../providers/auth_provider.dart';
 import 'package:flutter/foundation.dart';
 import '../../models/token_dto.dart'; // 경로 수정
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uni_links/uni_links.dart';
+import 'dart:async';
 
 class LoginPage extends StatefulWidget {
   final Locale? locale;
@@ -29,11 +31,54 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordController = TextEditingController();
   bool _rememberMe = false;  // 이메일/비밀번호 저장 상태
   late Dio _dio;
+  StreamSubscription? _sub;
 
   @override
   void initState() {
     super.initState();
     _loadSavedCredentials();  // 저장된 로그인 정보 불러오기
+    _initUniLinks();
+  }
+
+  Future<void> _initUniLinks() async {
+    // Initial link handling
+    try {
+      final initialLink = await getInitialLink();
+      if (initialLink != null) {
+        _handleDeeplink(initialLink);
+      }
+    } catch (e) {
+      print('Failed to get initial link: $e');
+    }
+
+    // Stream link handling
+    _sub = linkStream.listen((String? link) {
+      if (link != null) {
+        _handleDeeplink(link);
+      }
+    }, onError: (err) {
+      print('Failed to handle link: $err');
+    });
+  }
+
+  void _handleDeeplink(String link) {
+    // Parse the link and handle it
+    print('Received deeplink: $link');
+    final uri = Uri.parse(link);
+    final accessToken = uri.queryParameters['accessToken'];
+    final refreshToken = uri.queryParameters['refreshToken'];
+
+    if (accessToken != null && refreshToken != null) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      authProvider.setTokens(
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+      );
+
+      // Navigate to the home screen or another appropriate screen
+      final currentLocale = Localizations.localeOf(context).languageCode;
+      context.go('/$currentLocale/home');
+    }
   }
 
   // 저장된 로그인 정보 불러오기
@@ -312,6 +357,7 @@ class _LoginPageState extends State<LoginPage> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _sub?.cancel();
     super.dispose();
   }
 }
