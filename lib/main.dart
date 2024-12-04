@@ -123,6 +123,16 @@ class MyApp extends StatelessWidget {
             GlobalCupertinoLocalizations.delegate,
           ],
           theme: ThemeData(
+             pageTransitionsTheme: const PageTransitionsTheme(
+              builders: {
+                // 모든 플랫폼에 대해 애니메이션 제거
+                TargetPlatform.android: NoTransitionsBuilder(),
+                TargetPlatform.iOS: NoTransitionsBuilder(),
+                TargetPlatform.windows: NoTransitionsBuilder(),
+                TargetPlatform.macOS: NoTransitionsBuilder(),
+                TargetPlatform.linux: NoTransitionsBuilder(),
+              },
+            ),
             useMaterial3: true,
             colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
             fontFamily: 'NotoSansKR',  // 기본 폰트 설정
@@ -143,5 +153,20 @@ class MyApp extends StatelessWidget {
         );
       },
     );
+  }
+}
+// 커스텀 NoTransitionsBuilder 클래스
+class NoTransitionsBuilder extends PageTransitionsBuilder {
+  const NoTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return child;
   }
 }
