@@ -148,7 +148,7 @@ class MyApp extends StatelessWidget {
           title: '리워드 팩토리', // 기본 타이틀
           onGenerateTitle: (context) {
             // 현재 로케일에 따라 타이틀 반환
-            return AppLocalizations.of(context)!.appTitle;
+            return AppLocalizations.of(context).appTitle;
           },
         );
       },

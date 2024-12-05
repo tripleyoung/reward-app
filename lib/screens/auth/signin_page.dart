@@ -224,6 +224,8 @@ class _SignInPageState extends State<SignInPage> {
     if (mounted && apiResponse.success && apiResponse.data == true) {
       setState(() {
         _isEmailVerified = true;
+        _timer?.cancel();
+        _timeLeft = 0;
       });
     }
   }
@@ -234,7 +236,7 @@ class _SignInPageState extends State<SignInPage> {
     }
 
     if (_formKey.currentState!.validate()) {
-      final response = await _dio.post('/members/signup', data: {
+      final response = await _dio.post('/members/signup/user', data: {
         "name": _nameController.text,
         "email": _emailController.text,
         "password": _passwordController.text,

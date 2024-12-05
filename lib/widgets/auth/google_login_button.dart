@@ -36,7 +36,6 @@ class GoogleLoginButton extends StatelessWidget {
           queryParameters: {
             'platform': platform, // 'desktop' 또는 'web'
             'role': role, // 'user', 'business', 'admin'
-            'app_type': 'app'
           },
         );
 
