@@ -22,7 +22,7 @@ jobs:
       run: flutter pub get
 
     - name: Build web
-      run: flutter build web --dart-define=ENV=prod --base-href "/"
+      run: flutter build web --dart-define=ENV=prod
 
     - name: Create vercel.json
       run: |
