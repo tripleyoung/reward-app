@@ -27,6 +27,10 @@ void main() async {
 
   final authProvider = AuthProvider();
   await authProvider.initializeAuth(); // 앱 시작 시 인증 상태 초기화
+
+  // 웹 URL 전략을 경로 기반으로 설정
+  setUrlStrategy(PathUrlStrategy());
+
   runApp(
     MultiProvider(
       providers: [
@@ -39,9 +43,6 @@ void main() async {
 
   // 로컬 서버 시작
   startLocalServer(authProvider);
-
-  // 웹 URL 전략 설정 (옵션)
-  setUrlStrategy(PathUrlStrategy());
 }
 Future<void> precacheFonts() async {
   final fontLoader = FontLoader('NotoSansKR');
@@ -125,7 +126,7 @@ class MyApp extends StatelessWidget {
           theme: ThemeData(
              pageTransitionsTheme: const PageTransitionsTheme(
               builders: {
-                // 모든 플랫폼에 대해 애니메이션 제거
+                // 모든 플랫폼에 ��해 애니메이션 제거
                 TargetPlatform.android: NoTransitionsBuilder(),
                 TargetPlatform.iOS: NoTransitionsBuilder(),
                 TargetPlatform.windows: NoTransitionsBuilder(),
