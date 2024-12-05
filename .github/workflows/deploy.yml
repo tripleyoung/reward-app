@@ -15,14 +15,25 @@ jobs:
     - name: Install Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.24.5' # 원하는 Flutter 버전을 입력
+        flutter-version: '3.24.5'
         channel: stable
 
     - name: Install dependencies
       run: flutter pub get
 
     - name: Build web
-      run: flutter build web --dart-define=ENV=prod  
+      run: flutter build web --dart-define=ENV=prod --base-href "/"
+
+    - name: Create vercel.json
+      run: |
+        cat > build/web/vercel.json << 'EOF'
+        {
+          "rewrites": [
+            { "source": "/(.*)", "destination": "/index.html" }
+          ]
+        }
+        EOF
+
     - name: Deploy to Vercel
       run: |
         mv build/web build/reward-app
