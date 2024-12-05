@@ -27,15 +27,11 @@ class GoogleLoginButton extends StatelessWidget {
         if (kDebugMode) {
           print('${kIsWeb ? "Web" : "Desktop"} platform detected');
         }
-        final baseUrl = AppConfig.apiBaseUrl;
-
-        final platform = AppConfig.isDesktop ? 'desktop' : 'web';
-
-        final authUrl =
-            Uri.parse('$baseUrl/oauth2/authorization/google').replace(
+        final authUrl = Uri.parse('${AppConfig.apiBaseUrl}/oauth2/authorization/google')
+            .replace(
           queryParameters: {
-            'platform': platform, // 'desktop' 또는 'web'
-            'role': role, // 'user', 'business', 'admin'
+            'platform': AppConfig.isDesktop ? 'desktop' : 'web',
+            'role': role,
           },
         );
 
