@@ -34,6 +34,6 @@
   "networkError": "네트워크 오류가 발생했습니다. 다시 시도해주세요.",
   "loginFail": "로그인에 실패했습니다",
   "rememberCredentials": "이메일/비밀번호 저장",
-  "loginDescription": "리워드 서비스를 이용하려면 로그인이 필요합니다."
-  
+  "loginDescription": "리워드 서비스를 이용하려면 로그인이 필요합니다.",
+  "salesLogin": "비즈니스 계정으로 참여하기"
 } 

@@ -29,5 +29,6 @@
   "loginSuccess": "Login successful",
   "networkError": "Network error occurred. Please try again.",
   "rememberCredentials": "Remember Email/Password",
-  "loginDescription": "Login is required to use the reward service."
-} 
+  "loginDescription": "Login is required to use the reward service.",
+  "salesLogin": "Join as Business Account"
+}

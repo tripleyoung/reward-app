@@ -43,4 +43,8 @@ class AppConfig {
     if (Platform.isAndroid) return googleAndroidClientId;
     return '';
   }
+
+  static String get businessDomain => _environment == Environment.prod
+      ? 'https://business.reward-factory.shop'
+      : 'http://localhost:46152';
 }

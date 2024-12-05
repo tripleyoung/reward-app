@@ -15,6 +15,9 @@ import '../../models/token_dto.dart'; // 경로 수정
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uni_links/uni_links.dart';
 import 'dart:async';
+import 'package:url_launcher/url_launcher.dart';
+import '../../config/app_config.dart';
+import '../../utils/responsive.dart';
 
 class LoginPage extends StatefulWidget {
   final Locale? locale;
@@ -38,7 +41,6 @@ class _LoginPageState extends State<LoginPage> {
     _loadSavedCredentials();  // 저장된 로그인 정보 불러오기
   }
 
-  
   // 저장된 로그인 정보 불러오기
   Future<void> _loadSavedCredentials() async {
     final prefs = await SharedPreferences.getInstance();
@@ -112,26 +114,41 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  Future<void> _handleBusinessLogin() async {
+    final businessUrl = Uri.parse(AppConfig.businessDomain);
+    if (kIsWeb) {
+      // 웹에서는 현재 창에서 이동
+      await launchUrl(businessUrl, webOnlyWindowName: '_self');
+    } else {
+      // 다른 플랫폼에서는 외부 브라우저로 열기
+      await launchUrl(
+        businessUrl,
+        mode: LaunchMode.externalApplication,
+      );
+    }
+  }
+
   Widget _buildLoginForm() {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 40),
         FilledTextField(
           controller: _emailController,
-          label: AppLocalizations.of(context).emailLabel,
+          label: l10n.emailLabel,
           keyboardType: TextInputType.emailAddress,
           required: true,
         ),
         const SizedBox(height: 16),
         FilledTextField(
           controller: _passwordController,
-          label: AppLocalizations.of(context).passwordLabel,
+          label: l10n.passwordLabel,
           obscureText: true,
           required: true,
         ),
         const SizedBox(height: 8),
-        // 이메일/비밀번호 저장 체크박스
+        // 이메일/비밀번호 저장 ��크박스
         Row(
           children: [
             Checkbox(
@@ -143,7 +160,7 @@ class _LoginPageState extends State<LoginPage> {
               },
             ),
             Text(
-              AppLocalizations.of(context).rememberCredentials,
+              l10n.rememberCredentials,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ],
@@ -158,7 +175,7 @@ class _LoginPageState extends State<LoginPage> {
               borderRadius: BorderRadius.circular(kBorderRadius),
             ),
           ),
-          child: Text(AppLocalizations.of(context).loginButton),
+          child: Text(l10n.loginButton),
         ),
         const SizedBox(height: 16),
         const GoogleLoginButton(),
@@ -166,7 +183,7 @@ class _LoginPageState extends State<LoginPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(AppLocalizations.of(context).noAccount),
+            Text(l10n.noAccount),
             TextButton(
               onPressed: () {
                 final currentLocale =
@@ -176,7 +193,7 @@ class _LoginPageState extends State<LoginPage> {
                 context.go('/$currentLocale/signin');
               },
               child: Text(
-                AppLocalizations.of(context).signUpButton,
+                l10n.signUpButton,
                 style: TextStyle(color: Theme.of(context).colorScheme.primary),
               ),
             ),
@@ -222,26 +239,81 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isWebLayout = MediaQuery.of(context).size.width > 768;
-
-    if (isWebLayout) {
-      return Scaffold(
-        body: Row(
-          children: [
+    return Scaffold(
+      body: Row(
+        children: [
+          // 사이드 메뉴 (태블릿 이상에서만 표시)
+          if (!isMobile(context))
             Expanded(
-              flex: 2,
+              flex: isDesktop(context) ? 2 : 1,
               child: Container(
                 color: Colors.green.shade600,
-                child: _buildSideMenu(),
-              ),
-            ),
-            Expanded(
-              flex: 1,
-              child: Container(
-                height: MediaQuery.of(context).size.height,
-                color: Colors.white,
                 child: Stack(
                   children: [
+                    _buildSideMenu(),
+                    Positioned(
+                      top: 16,
+                      left: 16,
+                      child: OutlinedButton(
+                        onPressed: _handleBusinessLogin,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 16
+                          ),
+                          side: const BorderSide(color: Colors.white),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.business, color: Colors.white),
+                            const SizedBox(width: 8),
+                            Text(
+                              AppLocalizations.of(context).salesLogin,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          
+          // 로그인 폼
+          Expanded(
+            flex: isDesktop(context) ? 1 : 2,
+            child: Container(
+              height: MediaQuery.of(context).size.height,
+              color: Colors.white,
+              child: Stack(
+                children: [
+                  // 모바일에서만 표시되는 앱바
+                  if (isMobile(context))
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: AppBar(
+                        backgroundColor: Colors.transparent,
+                        elevation: 0,
+                        leading: IconButton(
+                          icon: const Icon(Icons.business),
+                          onPressed: _handleBusinessLogin,
+                        ),
+                        actions: const [
+                          LanguageDropdown(),
+                          SizedBox(width: 8),
+                        ],
+                      ),
+                    ),
+                  
+                  // 언어 선택 드롭다운 (태블릿 이상에서만)
+                  if (!isMobile(context))
                     Positioned(
                       top: 16,
                       right: 16,
@@ -254,61 +326,26 @@ class _LoginPageState extends State<LoginPage> {
                         child: const LanguageDropdown(),
                       ),
                     ),
-                    Center(
-                      child: SingleChildScrollView(
-                        child: Container(
-                          padding: const EdgeInsets.all(32),
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 400),
-                            child: _buildLoginForm(),
-                          ),
+                  
+                  // 로그인 폼
+                  Center(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.all(isMobile(context) ? 16 : 32),
+                      child: Container(
+                        constraints: BoxConstraints(
+                          maxWidth: isMobile(context) ? double.infinity : 400,
                         ),
+                        child: _buildLoginForm(),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-      );
-    } else {
-      return Scaffold(
-        appBar: AppBar(
-          title: Row(
-            children: [
-              Image.asset(
-                'assets/images/logo.png', // 로고 이미지 추가 필요
-                height: 32,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                AppLocalizations.of(context).appTitle,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
           ),
-          centerTitle: false, // 왼쪽 정렬
-          actions: const [
-            LanguageDropdown(),
-            SizedBox(width: 8),
-          ],
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-        ),
-        body: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: _buildLoginForm(),
-            ),
-          ),
-        ),
-      );
-    }
+        ],
+      ),
+    );
   }
 
   @override
