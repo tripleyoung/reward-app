@@ -38,8 +38,6 @@ flutter:
 
   assets:
     - assets/images/
-    - .env.development
-    - .env.production
 
   fonts:
     - family: NotoSansKR

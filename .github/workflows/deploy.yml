@@ -22,7 +22,7 @@ jobs:
       run: flutter pub get
 
     - name: Build web
-      run: flutter build web --dart-define=ENV=prod
+      run: flutter build web --dart-define=ENV=prod --dart-define=API_BASE_URL=https://backend.reward-factory.shop:8765 --dart-define=GOOGLE_WEB_CLIENT_ID=133048024494-v9q4qimam6cl70set38o8tdbj3mcr0ss.apps.googleusercontent.com --dart-define=GOOGLE_ANDROID_CLIENT_ID=133048024494-s3hl3npre9hrmqeokp4pqp36me559o50.apps.googleusercontent.com
 
     - name: Create vercel.json
       run: |

@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'dart:io' show Platform;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 enum Environment {
   dev,
@@ -11,10 +10,8 @@ enum Environment {
 class AppConfig {
   static Environment _environment = Environment.dev;
 
-  static Future<void> initialize(Environment env) async {
+  static void initialize(Environment env) {
     _environment = env;
-    // 환경에 따른 .env 파일 로드
-    await dotenv.load(fileName: env == Environment.prod ? '.env.production' : '.env.development');
   }
 
   static bool get isDesktop =>
@@ -23,18 +20,27 @@ class AppConfig {
           defaultTargetPlatform == TargetPlatform.linux ||
           defaultTargetPlatform == TargetPlatform.macOS);
 
-  static String get apiBaseUrl => dotenv.env['API_BASE_URL'] ?? 'http://localhost:8080';
+  static String get apiBaseUrl => const String.fromEnvironment(
+        'API_BASE_URL',
+        defaultValue: 'http://localhost:8080',
+      );
 
   static String get apiPath => '/api/v1';
 
   // Google OAuth
-  static String get googleWebClientId => dotenv.env['GOOGLE_WEB_CLIENT_ID'] ?? '';
-  static String get googleIosClientId => dotenv.env['GOOGLE_IOS_CLIENT_ID'] ?? '';
-  static String get googleAndroidClientId => dotenv.env['GOOGLE_ANDROID_CLIENT_ID'] ?? '';
+  static String get googleWebClientId => const String.fromEnvironment(
+        'GOOGLE_WEB_CLIENT_ID',
+        defaultValue: '',
+      );
+  
+  static String get googleAndroidClientId => const String.fromEnvironment(
+        'GOOGLE_ANDROID_CLIENT_ID',
+        defaultValue: '',
+      );
 
   static String get googleClientId {
     if (kIsWeb) return googleWebClientId;
     if (Platform.isAndroid) return googleAndroidClientId;
-    return googleWebClientId; // 기본값
+    return '';
   }
 }
