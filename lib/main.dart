@@ -18,7 +18,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   usePathUrlStrategy();
   const env = String.fromEnvironment('ENV', defaultValue: 'dev');
-  AppConfig.setEnvironment(env == 'prod' ? Environment.prod : Environment.dev);
+  await AppConfig.initialize(env == 'prod' ? Environment.prod : Environment.dev);
 
   if (kDebugMode) {
     print('\n=== App Configuration ===');
