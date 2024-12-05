@@ -12,17 +12,60 @@ class AuthProvider extends ChangeNotifier {
   String? _accessToken;
   String? _refreshToken;
   Timer? _refreshTimer;
+  Map<String, dynamic>? _userInfo;
 
   bool get isAuthenticated => _isAuthenticated;
   String? get accessToken => _accessToken;
   String? get refreshToken => _refreshToken;
 
+  UserInfo? get user {
+    if (!_isAuthenticated) return null;
+
+    if (_userInfo == null) {
+      fetchUserInfo().then((userInfo) {
+        if (userInfo != null) {
+          _userInfo = {
+            'id': userInfo.userId,
+            'name': userInfo.userName,
+            'email': userInfo.email,
+            'role': userInfo.role,
+          };
+          notifyListeners();
+        }
+      });
+      return null;
+    }
+
+    return UserInfo.fromJson(_userInfo!);
+  }
+
+  Future<UserInfo?> fetchUserInfo() async {
+    if (!_isAuthenticated) return null;
+
+    try {
+      final dio = Dio(BaseOptions(
+        baseUrl: '${AppConfig.apiBaseUrl}${AppConfig.apiPath}',
+        headers: {'Authorization': 'Bearer $_accessToken'},
+      ));
+
+      final response = await dio.get('/members/me');
+
+      if (response.data['success']) {
+        _userInfo = response.data['data'];
+        notifyListeners();
+        return UserInfo.fromJson(_userInfo!);
+      }
+    } catch (e) {
+      debugPrint('Error fetching user info: $e');
+    }
+    return null;
+  }
+
   void startTokenRefreshTimer() {
     _refreshTimer?.cancel();
     _refreshTimer = Timer.periodic(
-      const Duration(minutes: 14),  // 15분 만료 토큰의 경우
-      (_) => _refreshTokens()
-    );
+        const Duration(minutes: 14), // 15분 만료 토큰의 경우
+        (_) => _refreshTokens());
   }
 
   Future<void> _refreshTokens() async {
@@ -67,7 +110,7 @@ class AuthProvider extends ChangeNotifier {
     _isAuthenticated = accessToken != null;
 
     if (accessToken != null) {
-      startTokenRefreshTimer();  // 토큰 설정 시 자동 갱신 시작
+      startTokenRefreshTimer(); // 토큰 설정 시 자동 갱신 시작
     }
 
     if (kDebugMode) {
@@ -81,21 +124,22 @@ class AuthProvider extends ChangeNotifier {
       print('isAuthenticated: $_isAuthenticated');
     }
 
-      if (accessToken != null && refreshToken != null) {
-        await AuthService.saveTokens(
-          accessToken: accessToken,
-          refreshToken: refreshToken,
-        );
-      }
-    
+    if (accessToken != null && refreshToken != null) {
+      await AuthService.saveTokens(
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+      );
+    }
+
     notifyListeners();
   }
 
   Future<void> logout() async {
-    _refreshTimer?.cancel();  // 타이머 중지
+    _refreshTimer?.cancel(); // 타이머 중지
     _accessToken = null;
     _refreshToken = null;
     _isAuthenticated = false;
+    _userInfo = null;
 
     // 웹/모바일 환경에 따른 토큰 제거
     await AuthService.logout();
@@ -176,7 +220,8 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> _saveTokensToStorage() async {
-    if (!kIsWeb) {  // 웹이 아닌 경우만 저장
+    if (!kIsWeb) {
+      // 웹이 아닌 경우만 저장
       if (_accessToken != null && _refreshToken != null) {
         await AuthService.saveTokens(
           accessToken: _accessToken!,
@@ -186,13 +231,11 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-
-
   // 앱 시작 시 호출되는 초기화 메서드
   Future<void> initializeAuth() async {
     final accessToken = await AuthService.getToken();
     final refreshToken = await AuthService.getRefreshToken();
-    
+
     if (accessToken != null && refreshToken != null) {
       await setTokens(
         accessToken: accessToken,
@@ -200,5 +243,28 @@ class AuthProvider extends ChangeNotifier {
       );
     }
     notifyListeners();
+  }
+}
+
+class UserInfo {
+  final String userId;
+  final String userName;
+  final String email;
+  final String role;
+
+  UserInfo({
+    required this.userId,
+    required this.userName,
+    required this.email,
+    required this.role,
+  });
+
+  factory UserInfo.fromJson(Map<String, dynamic> json) {
+    return UserInfo(
+      userId: json['id']?.toString() ?? '',
+      userName: json['name'] ?? '',
+      email: json['email'] ?? '',
+      role: json['role'] ?? '',
+    );
   }
 }

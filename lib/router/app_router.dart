@@ -7,6 +7,14 @@ import '../screens/auth/auth_callback_page.dart';
 import '../screens/home/home_page.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../screens/mypage/mypage_screen.dart';
+import '../screens/layout/home_layout.dart';
+import '../screens/cash_history/cash_history_screen.dart';
+import '../screens/withdrawal/withdrawal_request_screen.dart';
+import '../screens/profile/profile_edit_screen.dart';
+import '../screens/mission/mission_list_screen.dart';
+import '../screens/mission/missions_screen.dart';
+import '../screens/mission/mission_detail_screen.dart';
 
 final router = GoRouter(
   initialLocation: '/',
@@ -94,13 +102,57 @@ final router = GoRouter(
     ),
     GoRoute(
       path: '/:locale/home',
-      builder: (context, state) => HomePage(
-        locale: Locale(state.pathParameters['locale']!),
+      builder: (context, state) => HomeLayout(
+        child: HomePage(locale: Locale(state.pathParameters['locale']!)),
       ),
     ),
     GoRoute(
       path: '/:locale/auth/callback',
       builder: (context, state) => const AuthCallbackPage(),
+    ),
+    GoRoute(
+      path: '/:locale/mypage',
+      builder: (context, state) => HomeLayout(
+        child: const MyPageScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/:locale/cash-history',
+      builder: (context, state) => HomeLayout(
+        child: const CashHistoryScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/:locale/withdrawal-request',
+      builder: (context, state) => HomeLayout(
+        child: const WithdrawalRequestScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/:locale/profile-edit',
+      builder: (context, state) => HomeLayout(
+        child: const ProfileEditScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/:locale/mission-list',
+      builder: (context, state) => HomeLayout(
+        child: const MissionListScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/:locale/missions',
+      builder: (context, state) => HomeLayout(
+        child: const MissionsScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/:locale/mission/:rewardNo',
+      builder: (context, state) => HomeLayout(
+        child: MissionDetailScreen(
+          rewardNo: int.parse(state.pathParameters['rewardNo']!),
+        ),
+      ),
     ),
   ],
 ); 
