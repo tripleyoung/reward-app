@@ -38,4 +38,4 @@ jobs:
       run: |
         mv build/web build/reward-app
         cd build/reward-app
-        npx vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
+        npx vercel deploy --prod --force --token=${{ secrets.VERCEL_TOKEN }} --yes
