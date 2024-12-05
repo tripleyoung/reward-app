@@ -10,7 +10,9 @@ import 'router/app_router.dart';
 import 'providers/locale_provider.dart';
 import 'config/app_config.dart';
 import 'providers/auth_provider.dart';
-import 'package:flutter_web_plugins/flutter_web_plugins.dart';
+
+// 웹 전용 import를 조건부로 처리
+import 'web_url_strategy.dart' if (dart.library.html) 'package:flutter_web_plugins/flutter_web_plugins.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,9 +30,6 @@ void main() async {
   final authProvider = AuthProvider();
   await authProvider.initializeAuth(); // 앱 시작 시 인증 상태 초기화
 
-  // 웹 URL 전략을 경로 기반으로 설정
-  setUrlStrategy(PathUrlStrategy());
-
   runApp(
     MultiProvider(
       providers: [
@@ -42,7 +41,9 @@ void main() async {
   );
 
   // 로컬 서버 시작
-  startLocalServer(authProvider);
+  if (!kIsWeb) {
+    startLocalServer(authProvider);
+  }
 }
 Future<void> precacheFonts() async {
   final fontLoader = FontLoader('NotoSansKR');
@@ -126,7 +127,7 @@ class MyApp extends StatelessWidget {
           theme: ThemeData(
              pageTransitionsTheme: const PageTransitionsTheme(
               builders: {
-                // 모든 플랫폼에 ��해 애니메이션 제거
+                // 모든 플랫폼에 대해 애니메이션 제거
                 TargetPlatform.android: NoTransitionsBuilder(),
                 TargetPlatform.iOS: NoTransitionsBuilder(),
                 TargetPlatform.windows: NoTransitionsBuilder(),
