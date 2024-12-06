@@ -101,16 +101,16 @@ class DioService {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final accessToken = authProvider.accessToken;
 
-    // 액세스 토큰은 항상 전송
-    if (accessToken != null) {
+    // 액세스 토큰은 항상 전송 (refresh 엔드포인트 제외)
+    if (accessToken != null && !options.path.endsWith('/members/refresh')) {
       options.headers['Authorization'] = 'Bearer $accessToken';
     }
 
-    // 리프레시 토큰은 토큰 갱신 요청시에만 전송
+    // 리프레시 토큰은 토큰 갱신 요청시에만 전송 (요청 바디로)
     if (options.path.endsWith('/members/refresh')) {
       final refreshToken = authProvider.refreshToken;
       if (refreshToken != null) {
-        options.headers['Authorization-Refresh'] = 'Bearer $refreshToken';
+        options.data = {'refreshToken': refreshToken};
       }
     }
   }
@@ -137,15 +137,13 @@ class DioService {
     }
   }
 
-
-
   static Dio getInstance(BuildContext context) {
     if (kDebugMode) {
       print('Creating new Dio instance');
     }
 
     final currentLocale = Localizations.localeOf(context).languageCode;
-    
+
     final dio = Dio(
       BaseOptions(
         baseUrl: '${AppConfig.apiBaseUrl}${AppConfig.apiPath}',
@@ -182,12 +180,12 @@ class DioService {
           }
 
           // 401 에러일 경우 토큰 갱신 시도
-          if (error.response?.statusCode == 401 && 
+          if (error.response?.statusCode == 401 &&
               !error.requestOptions.path.endsWith('/members/refresh')) {
             final authProvider = Provider.of<AuthProvider>(context, listen: false);
             try {
               await authProvider.refreshAuthToken();
-              
+
               if (authProvider.isAuthenticated) {
                 final opts = Options(
                   method: error.requestOptions.method,

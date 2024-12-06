@@ -20,7 +20,7 @@ class AuthProvider extends ChangeNotifier {
 
   UserInfo? get user {
     if (!_isAuthenticated) return null;
-
+    
     if (_userInfo == null) {
       fetchUserInfo().then((userInfo) {
         if (userInfo != null) {
@@ -35,13 +35,13 @@ class AuthProvider extends ChangeNotifier {
       });
       return null;
     }
-
+    
     return UserInfo.fromJson(_userInfo!);
   }
 
   Future<UserInfo?> fetchUserInfo() async {
     if (!_isAuthenticated) return null;
-
+    
     try {
       final dio = Dio(BaseOptions(
         baseUrl: '${AppConfig.apiBaseUrl}${AppConfig.apiPath}',
@@ -49,7 +49,7 @@ class AuthProvider extends ChangeNotifier {
       ));
 
       final response = await dio.get('/members/me');
-
+      
       if (response.data['success']) {
         _userInfo = response.data['data'];
         notifyListeners();
@@ -64,8 +64,9 @@ class AuthProvider extends ChangeNotifier {
   void startTokenRefreshTimer() {
     _refreshTimer?.cancel();
     _refreshTimer = Timer.periodic(
-        const Duration(minutes: 14), // 15분 만료 토큰의 경우
-        (_) => _refreshTokens());
+      const Duration(minutes: 14),  // 15분 만료 토큰의 경우
+      (_) => _refreshTokens()
+    );
   }
 
   Future<void> _refreshTokens() async {
@@ -77,11 +78,9 @@ class AuthProvider extends ChangeNotifier {
       ));
       final response = await dio.post(
         '/members/refresh',
-        options: Options(
-          headers: {
-            'Authorization-Refresh': 'Bearer $_refreshToken',
-          },
-        ),
+        data: {
+          'refreshToken': _refreshToken,
+        },
       );
 
       final apiResponse = ApiResponse.fromJson(
@@ -110,7 +109,7 @@ class AuthProvider extends ChangeNotifier {
     _isAuthenticated = accessToken != null;
 
     if (accessToken != null) {
-      startTokenRefreshTimer(); // 토큰 설정 시 자동 갱신 시작
+      startTokenRefreshTimer();  // 토큰 설정 시 자동 갱신 시작
     }
 
     if (kDebugMode) {
@@ -124,18 +123,19 @@ class AuthProvider extends ChangeNotifier {
       print('isAuthenticated: $_isAuthenticated');
     }
 
-    if (accessToken != null && refreshToken != null) {
-      await AuthService.saveTokens(
-        accessToken: accessToken,
-        refreshToken: refreshToken,
-      );
-    }
-
+      if (accessToken != null && refreshToken != null) {
+        await AuthService.saveTokens(
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+        );
+      }
+    
     notifyListeners();
   }
 
   Future<void> logout() async {
-    _refreshTimer?.cancel(); // 타이머 중지
+    final currentRefreshToken = _refreshToken;  // 현재 리프레시 토큰 저장
+    _refreshTimer?.cancel();  // 타이머 중지
     _accessToken = null;
     _refreshToken = null;
     _isAuthenticated = false;
@@ -145,16 +145,21 @@ class AuthProvider extends ChangeNotifier {
     await AuthService.logout();
 
     // 서버에 로그아웃 요청
-    try {
-      final dio = Dio(BaseOptions(
-        baseUrl: '${AppConfig.apiBaseUrl}${AppConfig.apiPath}',
-        extra: {'withCredentials': true},
-      ));
+    if (currentRefreshToken != null) {
+      try {
+        final dio = Dio(BaseOptions(
+          baseUrl: '${AppConfig.apiBaseUrl}${AppConfig.apiPath}',
+          headers: {'Authorization': 'Bearer $_accessToken'},
+        ));
 
-      await dio.post('/members/logout');
-    } catch (e) {
-      if (kDebugMode) {
-        print('Logout error: $e');
+        await dio.post(
+          '/members/logout',
+          data: {'refreshToken': currentRefreshToken},
+        );
+      } catch (e) {
+        if (kDebugMode) {
+          print('Logout error: $e');
+        }
       }
     }
 
@@ -220,8 +225,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> _saveTokensToStorage() async {
-    if (!kIsWeb) {
-      // 웹이 아닌 경우만 저장
+    if (!kIsWeb) {  // 웹이 아닌 경우만 저장
       if (_accessToken != null && _refreshToken != null) {
         await AuthService.saveTokens(
           accessToken: _accessToken!,
@@ -231,11 +235,13 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+
+
   // 앱 시작 시 호출되는 초기화 메서드
   Future<void> initializeAuth() async {
     final accessToken = await AuthService.getToken();
     final refreshToken = await AuthService.getRefreshToken();
-
+    
     if (accessToken != null && refreshToken != null) {
       await setTokens(
         accessToken: accessToken,
