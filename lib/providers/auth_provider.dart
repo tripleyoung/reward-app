@@ -184,43 +184,32 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> refreshAuthToken() async {
-    if (_refreshToken == null) return;
-
     try {
       final dio = Dio(BaseOptions(
         baseUrl: '${AppConfig.apiBaseUrl}${AppConfig.apiPath}',
+        contentType: 'application/json',
       ));
 
       final response = await dio.post(
         '/members/refresh',
-        options: Options(
-          headers: {
-            'Authorization-Refresh': 'Bearer $_refreshToken',
-          },
-        ),
+        data: {
+          'refreshToken': _refreshToken,  // 바�에 리프레시 토큰 포함
+        },
       );
 
-      final apiResponse = ApiResponse.fromJson(
-        response.data,
-        (json) => TokenDto.fromJson(json as Map<String, dynamic>),
-      );
-
-      if (apiResponse.success && apiResponse.data != null) {
-        _accessToken = apiResponse.data?.accessToken;
-        _refreshToken = apiResponse.data?.refreshToken;
-        _isAuthenticated = true;
-        await _saveTokensToStorage();
+      if (response.statusCode == 200 && response.data['success']) {
+        final tokenDto = response.data['data'];
+        _accessToken = tokenDto['accessToken'];
+        _refreshToken = tokenDto['refreshToken'];
         notifyListeners();
+      } else {
+        throw Exception('Token refresh failed');
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('Token refresh error: $e');
-      }
-      _isAuthenticated = false;
       _accessToken = null;
       _refreshToken = null;
-      await _clearTokensFromStorage();
       notifyListeners();
+      rethrow;
     }
   }
 
