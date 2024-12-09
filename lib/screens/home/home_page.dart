@@ -6,7 +6,7 @@ import '../../services/dio_service.dart';
 
 class HomePage extends StatefulWidget {
   final Locale locale;
-  
+
   const HomePage({super.key, required this.locale});
 
   @override
@@ -26,12 +26,13 @@ class _HomePageState extends State<HomePage> {
   Future<void> _fetchUserInfo() async {
     try {
       final authProvider = context.read<AuthProvider>();
-      final userId = authProvider.user?.userId;
-      
+      final user = await authProvider.user;
+      final userId = user?.userId;
+
       if (userId != null) {
-        final dio = DioService.getInstance(context);
+        final dio = DioService.instance;
         final response = await dio.post('/my/point', data: {'userId': userId});
-        
+
         if (response.data['success']) {
           setState(() {
             _point = response.data['userPoint'] ?? 0;
@@ -50,7 +51,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final currentLocale = Localizations.localeOf(context).languageCode;
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('리워드'),
@@ -90,7 +91,8 @@ class _HomePageState extends State<HomePage> {
                         ],
                       ),
                       ElevatedButton(
-                        onPressed: () => context.go('/$currentLocale/cash-history'),
+                        onPressed: () =>
+                            context.go('/$currentLocale/cash-history'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
                           foregroundColor: Colors.white,

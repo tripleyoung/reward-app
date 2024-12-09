@@ -31,14 +31,14 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _rememberMe = false;  // 이메일/비밀번호 저장 상태
+  bool _rememberMe = false; // 이메일/비밀번호 저장 상태
   late Dio _dio;
   StreamSubscription? _sub;
 
   @override
   void initState() {
     super.initState();
-    _loadSavedCredentials();  // 저장된 로그인 정보 불러오기
+    _loadSavedCredentials(); // 저장된 로그인 정보 불러오기
   }
 
   // 저장된 로그인 정보 불러오기
@@ -70,7 +70,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _dio = DioService.getInstance(context);
+    _dio = DioService.instance;
   }
 
   Future<void> _handleLogin() async {
@@ -92,8 +92,8 @@ class _LoginPageState extends State<LoginPage> {
       );
 
       if (mounted && apiResponse.success && apiResponse.data != null) {
-        await _saveCredentials();  // 로그인 성공 시 credentials 저장
-        
+        await _saveCredentials(); // 로그인 성공 시 credentials 저장
+
         final tokenDto = apiResponse.data!;
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         await authProvider.setTokens(
@@ -258,9 +258,7 @@ class _LoginPageState extends State<LoginPage> {
                         onPressed: _handleBusinessLogin,
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
-                            vertical: 12,
-                            horizontal: 16
-                          ),
+                              vertical: 12, horizontal: 16),
                           side: const BorderSide(color: Colors.white),
                         ),
                         child: Row(
@@ -283,7 +281,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
             ),
-          
+
           // 로그인 폼
           Expanded(
             flex: isDesktop(context) ? 1 : 2,
@@ -311,7 +309,7 @@ class _LoginPageState extends State<LoginPage> {
                         ],
                       ),
                     ),
-                  
+
                   // 언어 선택 드롭다운 (태블릿 이상에서만)
                   if (!isMobile(context))
                     Positioned(
@@ -326,7 +324,7 @@ class _LoginPageState extends State<LoginPage> {
                         child: const LanguageDropdown(),
                       ),
                     ),
-                  
+
                   // 로그인 폼
                   Center(
                     child: SingleChildScrollView(

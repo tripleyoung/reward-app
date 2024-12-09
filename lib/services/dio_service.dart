@@ -6,6 +6,9 @@ import '../providers/auth_provider.dart';
 import '../config/app_config.dart';
 
 class DioService {
+  static Dio? _instance;
+  static BuildContext? _context;
+
   // 토스트 메시지 표시 유틸리티 메서드
   static void _showToast(BuildContext context, String message, bool success) {
     if (!context.mounted) return;
@@ -97,8 +100,8 @@ class DioService {
   }
 
   // 토큰 처리
-  static Future<void> _handleTokens(RequestOptions options, BuildContext context) async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+  static Future<void> _handleTokens(
+      RequestOptions options, AuthProvider authProvider) async {
     final accessToken = authProvider.accessToken;
 
     // 액세스 토큰은 항상 전송 (refresh 엔드포인트 제외)
@@ -137,93 +140,122 @@ class DioService {
     }
   }
 
-  static Dio getInstance(BuildContext context) {
-    if (kDebugMode) {
-      print('Creating new Dio instance');
-    }
+  static void init(BuildContext context) {
+    _context = context;
+  }
 
-    final currentLocale = Localizations.localeOf(context).languageCode;
+  static Dio get instance {
+    if (_instance == null) {
+      if (kDebugMode) {
+        print('Creating new Dio instance');
+      }
 
-    final dio = Dio(
-      BaseOptions(
-        baseUrl: '${AppConfig.apiBaseUrl}${AppConfig.apiPath}',
-        contentType: 'application/json',
-        headers: {
-          ..._getDefaultHeaders(),
-          'Accept-Language': currentLocale,
-        },
-        followRedirects: true,
-        maxRedirects: 5,
-        extra: {'withCredentials': true},
-        validateStatus: (status) => status! < 500,
-      ),
-    );
+      if (_context == null) {
+        throw Exception(
+            'DioService not initialized. Call DioService.init() first.');
+      }
 
-    dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) async {
-          _logRequest(options);
-          await _handleTokens(options, context);
-          return handler.next(options);
-        },
-        onResponse: (response, handler) async {
-          _logResponse(response);
-          _handleApiResponse(response, context);
-          return handler.next(response);
-        },
-        onError: (error, handler) async {
-          if (kDebugMode) {
-            print('\n❌ === ERROR START ===');
-            print('📍 URL: ${error.requestOptions.uri}');
-            print('🔴 Error Type: ${error.type}');
-            print('💬 Error Message: ${error.message}');
-          }
+      final authProvider = Provider.of<AuthProvider>(_context!, listen: false);
 
-          // 401 에러일 경우 토큰 갱신 시도
-          if (error.response?.statusCode == 401 &&
-              !error.requestOptions.path.endsWith('/members/refresh')) {
-            final authProvider = Provider.of<AuthProvider>(context, listen: false);
-            try {
-              await authProvider.refreshAuthToken();
+      String? currentLocale;
+      try {
+        currentLocale = Localizations.localeOf(_context!).languageCode;
+      } catch (e) {
+        currentLocale = 'ko';
+      }
 
-              if (authProvider.isAuthenticated) {
-                final opts = Options(
-                  method: error.requestOptions.method,
-                  headers: error.requestOptions.headers,
-                );
+      _instance = Dio(
+        BaseOptions(
+          baseUrl: '${AppConfig.apiBaseUrl}${AppConfig.apiPath}',
+          contentType: 'application/json',
+          headers: {
+            ..._getDefaultHeaders(),
+            'Accept-Language': currentLocale ?? 'ko',
+          },
+          followRedirects: true,
+          maxRedirects: 5,
+          extra: {'withCredentials': true},
+          validateStatus: (status) => status! < 400,
+        ),
+      );
 
-                opts.headers?['Authorization'] = 'Bearer ${authProvider.accessToken}';
+      _instance!.interceptors.clear();
+      _instance!.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) async {
+            _logRequest(options);
+            await _handleTokens(options, authProvider);
+            return handler.next(options);
+          },
+          onResponse: (response, handler) async {
+            _logResponse(response);
+            _handleApiResponse(response, _context!);
+            return handler.next(response);
+          },
+          onError: (error, handler) async {
+            _logDioError(error);
 
-                final clonedRequest = await dio.request(
-                  error.requestOptions.path,
-                  options: opts,
-                  data: error.requestOptions.data,
-                  queryParameters: error.requestOptions.queryParameters,
-                );
-                return handler.resolve(clonedRequest);
-              }
-            } catch (e) {
-              if (kDebugMode) {
-                print('Token refresh failed: $e');
+            if (error.response?.statusCode == 401 &&
+                !error.requestOptions.path.endsWith('/members/refresh')) {
+              try {
+                if (kDebugMode) {
+                  print('Attempting to refresh token due to 401 error');
+                  print('Original request: ${error.requestOptions.path}');
+                  print('Current access token: ${authProvider.accessToken}');
+                  print('Current refresh token: ${authProvider.refreshToken}');
+                }
+
+                final isRefreshed = await authProvider.refreshAuthToken();
+                if (kDebugMode) {
+                  print('Refresh result: $isRefreshed');
+                  print('New access token: ${authProvider.accessToken}');
+                }
+
+                if (isRefreshed) {
+                  if (kDebugMode) {
+                    print(
+                        'Token refreshed successfully, retrying original request');
+                  }
+
+                  final opts = Options(
+                    method: error.requestOptions.method,
+                    headers: {...error.requestOptions.headers},
+                  );
+                  opts.headers!['Authorization'] =
+                      'Bearer ${authProvider.accessToken}';
+
+                  // 원래 요청 재시도
+                  final response = await _instance!.request(
+                    error.requestOptions.path,
+                    options: opts,
+                    data: error.requestOptions.data,
+                    queryParameters: error.requestOptions.queryParameters,
+                  );
+                  return handler.resolve(response);
+                } else {
+                  if (kDebugMode) {
+                    print(
+                        'Token refresh failed, but not logging out automatically');
+                  }
+                  // 토큰 갱신 실패시에도 로그아웃하지 않고 에러만 전달
+                  return handler.next(error);
+                }
+              } catch (e) {
+                if (kDebugMode) {
+                  print('Error during token refresh: $e');
+                }
+                // 예외 발생시에도 로그아웃하지 않고 에러만 전달
+                return handler.next(error);
               }
             }
-          }
 
-          final errorMessage = _extractErrorMessage(error);
-          if (errorMessage.isNotEmpty) {
-            _showToast(context, errorMessage, false);
-          }
+            return handler.next(error);
+          },
+        ),
+      );
+    }
 
-          if (kDebugMode) {
-            print('=== ERROR END ===\n');
-          }
-
-          return handler.next(error);
-        },
-      ),
-    );
-
-    return dio;
+    return _instance!;
   }
 
   // 기본 헤더 설정

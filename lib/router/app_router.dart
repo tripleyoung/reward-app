@@ -19,10 +19,13 @@ import '../screens/mission/mission_detail_screen.dart';
 final router = GoRouter(
   initialLocation: '/',
   debugLogDiagnostics: true,
-  redirect: (context, state) {
+  redirect: (context, state) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final locale = Localizations.localeOf(context).languageCode;
-    
+        // 초기화가 완료될 때까지 대기
+    if (!authProvider.isInitialized) {
+      await authProvider.initializeAuth();
+    }
     // 현재 경로에서 해시(#)와 쿼리 파라미터 제거
     final path = state.uri.path
         .replaceAll('#', '')

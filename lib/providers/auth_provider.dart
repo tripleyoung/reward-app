@@ -1,62 +1,66 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'package:dio/dio.dart';
 import '../models/api_response.dart';
 import '../models/token_dto.dart';
 import '../config/app_config.dart';
+import '../services/dio_service.dart';
 
 class AuthProvider extends ChangeNotifier {
+  final BuildContext context;
   bool _isAuthenticated = false;
   String? _accessToken;
   String? _refreshToken;
   Timer? _refreshTimer;
   Map<String, dynamic>? _userInfo;
+  bool _isInitialized = false;
+
+  AuthProvider(this.context);
 
   bool get isAuthenticated => _isAuthenticated;
   String? get accessToken => _accessToken;
   String? get refreshToken => _refreshToken;
+  bool get isInitialized => _isInitialized;
 
-  UserInfo? get user {
+  UserInfo? get currentUser =>
+      _userInfo != null ? UserInfo.fromJson(_userInfo!) : null;
+
+  Future<UserInfo?> get user async {
     if (!_isAuthenticated) return null;
-    
     if (_userInfo == null) {
-      fetchUserInfo().then((userInfo) {
-        if (userInfo != null) {
-          _userInfo = {
-            'id': userInfo.userId,
-            'name': userInfo.userName,
-            'email': userInfo.email,
-            'role': userInfo.role,
-          };
-          notifyListeners();
-        }
-      });
-      return null;
+      if (kDebugMode) {
+        print('User info is null, fetching from server...');
+      }
+      return await fetchUserInfo();
     }
-    
     return UserInfo.fromJson(_userInfo!);
   }
 
   Future<UserInfo?> fetchUserInfo() async {
     if (!_isAuthenticated) return null;
-    
-    try {
-      final dio = Dio(BaseOptions(
-        baseUrl: '${AppConfig.apiBaseUrl}${AppConfig.apiPath}',
-        headers: {'Authorization': 'Bearer $_accessToken'},
-      ));
 
+    try {
+      final dio = DioService.instance;
       final response = await dio.get('/members/me');
-      
+      print('response: ${response.data}');
+      if (kDebugMode) {
+        print('fetchUserInfo response: ${response.data}');
+      }
+
       if (response.data['success']) {
-        _userInfo = response.data['data'];
+        final userData = response.data['data'] as Map<String, dynamic>;
+        _userInfo = userData;
         notifyListeners();
-        return UserInfo.fromJson(_userInfo!);
+        return UserInfo.fromJson(userData);
       }
     } catch (e) {
-      debugPrint('Error fetching user info: $e');
+      if (kDebugMode) {
+        print('Error fetching user info: $e');
+        print('Stack trace: ${StackTrace.current}');
+      }
     }
     return null;
   }
@@ -64,24 +68,18 @@ class AuthProvider extends ChangeNotifier {
   void startTokenRefreshTimer() {
     _refreshTimer?.cancel();
     _refreshTimer = Timer.periodic(
-      const Duration(minutes: 14),  // 15분 만료 토큰의 경우
-      (_) => _refreshTokens()
-    );
+        const Duration(minutes: 15), // 15분 만료 토큰의 경우
+        (_) => refreshAuthToken());
   }
 
-  Future<void> _refreshTokens() async {
-    if (_refreshToken == null) return;
+  Future<bool> refreshAuthToken() async {
+    if (_refreshToken == null) return false;
 
     try {
-      final dio = Dio(BaseOptions(
-        baseUrl: '${AppConfig.apiBaseUrl}${AppConfig.apiPath}',
-      ));
-      final response = await dio.post(
-        '/members/refresh',
-        data: {
-          'refreshToken': _refreshToken,
-        },
-      );
+      final dio = DioService.instance;
+
+      final response = await dio
+          .post('/members/refresh', data: {'refreshToken': _refreshToken});
 
       final apiResponse = ApiResponse.fromJson(
         response.data,
@@ -90,17 +88,17 @@ class AuthProvider extends ChangeNotifier {
 
       if (apiResponse.success && apiResponse.data != null) {
         await setTokens(
-          accessToken: apiResponse.data?.accessToken,
-          refreshToken: apiResponse.data?.refreshToken,
-        );
+            accessToken: apiResponse.data?.accessToken,
+            refreshToken: apiResponse.data?.refreshToken);
+        return true;
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Token refresh failed: $e');
+        print('Token refresh error: $e');
       }
-      // 토큰 갱신 실패 시 로그아웃
       await logout();
     }
+    return false;
   }
 
   Future<void> setTokens({String? accessToken, String? refreshToken}) async {
@@ -109,7 +107,7 @@ class AuthProvider extends ChangeNotifier {
     _isAuthenticated = accessToken != null;
 
     if (accessToken != null) {
-      startTokenRefreshTimer();  // 토큰 설정 시 자동 갱신 시작
+      startTokenRefreshTimer(); // 토큰 설정 시 자동 갱신 시작
     }
 
     if (kDebugMode) {
@@ -123,39 +121,26 @@ class AuthProvider extends ChangeNotifier {
       print('isAuthenticated: $_isAuthenticated');
     }
 
-      if (accessToken != null && refreshToken != null) {
-        await AuthService.saveTokens(
-          accessToken: accessToken,
-          refreshToken: refreshToken,
-        );
-      }
-    
+    if (accessToken != null && refreshToken != null) {
+      await AuthService.saveTokens(
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+      );
+    }
+
     notifyListeners();
   }
 
   Future<void> logout() async {
-    final currentRefreshToken = _refreshToken;  // 현재 리프레시 토큰 저장
-    _refreshTimer?.cancel();  // 타이머 중지
-    _accessToken = null;
-    _refreshToken = null;
-    _isAuthenticated = false;
-    _userInfo = null;
-
-    // 웹/모바일 환경에 따른 토큰 제거
-    await AuthService.logout();
+    final currentRefreshToken = _refreshToken;
+    _refreshTimer?.cancel();
 
     // 서버에 로그아웃 요청
     if (currentRefreshToken != null) {
       try {
-        final dio = Dio(BaseOptions(
-          baseUrl: '${AppConfig.apiBaseUrl}${AppConfig.apiPath}',
-          headers: {'Authorization': 'Bearer $_accessToken'},
-        ));
-
-        await dio.post(
-          '/members/logout',
-          data: {'refreshToken': currentRefreshToken},
-        );
+        final dio = DioService.instance;
+        await dio.post('/members/logout',
+            data: {'refreshToken': currentRefreshToken});
       } catch (e) {
         if (kDebugMode) {
           print('Logout error: $e');
@@ -163,13 +148,14 @@ class AuthProvider extends ChangeNotifier {
       }
     }
 
-    notifyListeners();
-  }
+    // 로컬 상태 초기화
+    _accessToken = null;
+    _refreshToken = null;
+    _isAuthenticated = false;
+    _userInfo = null;
 
-  Future<void> _clearTokensFromStorage() async {
-    // AuthService의 logout 메서드가 이미 플랫폼별 처리를 하므로
-    // 여기서는 AuthService.logout()을 호출
     await AuthService.logout();
+    notifyListeners();
   }
 
   // 초기 상태 로드
@@ -183,61 +169,38 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> refreshAuthToken() async {
-    try {
-      final dio = Dio(BaseOptions(
-        baseUrl: '${AppConfig.apiBaseUrl}${AppConfig.apiPath}',
-        contentType: 'application/json',
-      ));
-
-      final response = await dio.post(
-        '/members/refresh',
-        data: {
-          'refreshToken': _refreshToken,  // 바�에 리프레시 토큰 포함
-        },
-      );
-
-      if (response.statusCode == 200 && response.data['success']) {
-        final tokenDto = response.data['data'];
-        _accessToken = tokenDto['accessToken'];
-        _refreshToken = tokenDto['refreshToken'];
-        notifyListeners();
-      } else {
-        throw Exception('Token refresh failed');
-      }
-    } catch (e) {
-      _accessToken = null;
-      _refreshToken = null;
-      notifyListeners();
-      rethrow;
-    }
-  }
-
-  Future<void> _saveTokensToStorage() async {
-    if (!kIsWeb) {  // 웹이 아닌 경우만 저장
-      if (_accessToken != null && _refreshToken != null) {
-        await AuthService.saveTokens(
-          accessToken: _accessToken!,
-          refreshToken: _refreshToken!,
-        );
-      }
-    }
-  }
-
-
-
   // 앱 시작 시 호출되는 초기화 메서드
   Future<void> initializeAuth() async {
     final accessToken = await AuthService.getToken();
     final refreshToken = await AuthService.getRefreshToken();
-    
+
     if (accessToken != null && refreshToken != null) {
       await setTokens(
         accessToken: accessToken,
         refreshToken: refreshToken,
       );
     }
+    _isInitialized = true;
     notifyListeners();
+  }
+
+  // 별도의 초기화 메서드로 분리
+  Future<void> initializeUserInfo() async {
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    if (_isAuthenticated && _userInfo == null) {
+      try {
+        final userInfo = await fetchUserInfo();
+        if (userInfo != null) {
+          _userInfo = userInfo.toJson();
+          notifyListeners();
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('Error initializing user info: $e');
+        }
+      }
+    }
   }
 }
 
@@ -246,20 +209,45 @@ class UserInfo {
   final String userName;
   final String email;
   final String role;
+  final String? nickname;
+  final String? profileImage;
+  final DateTime? createdAt;
 
   UserInfo({
     required this.userId,
     required this.userName,
     required this.email,
     required this.role,
+    this.nickname,
+    this.profileImage,
+    this.createdAt,
   });
 
   factory UserInfo.fromJson(Map<String, dynamic> json) {
+    if (kDebugMode) {
+      print('Parsing UserInfo from JSON: $json');
+    }
     return UserInfo(
       userId: json['id']?.toString() ?? '',
       userName: json['name'] ?? '',
       email: json['email'] ?? '',
-      role: json['role'] ?? '',
+      role: json['role'] ?? 'USER',
+      nickname: json['nickname'],
+      profileImage: json['profileImage'],
+      createdAt:
+          json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': userId,
+      'name': userName,
+      'email': email,
+      'role': role,
+      'nickname': nickname,
+      'profileImage': profileImage,
+      'createdAt': createdAt?.toIso8601String(),
+    };
   }
 }

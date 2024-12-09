@@ -27,8 +27,9 @@ class GoogleLoginButton extends StatelessWidget {
         if (kDebugMode) {
           print('${kIsWeb ? "Web" : "Desktop"} platform detected');
         }
-        final authUrl = Uri.parse('${AppConfig.apiBaseUrl}/oauth2/authorization/google')
-            .replace(
+        final authUrl =
+            Uri.parse('${AppConfig.apiBaseUrl}/oauth2/authorization/google')
+                .replace(
           queryParameters: {
             'platform': AppConfig.isDesktop ? 'desktop' : 'web',
             'role': role,
@@ -72,7 +73,7 @@ class GoogleLoginButton extends StatelessWidget {
                 await account.authentication;
 
             // Google 토큰으로 백엔드 인증
-            final dio = DioService.getInstance(context);
+            final dio = DioService.instance;
             final response = await dio.post(
               '/members/oauth2/google/callback',
               data: {

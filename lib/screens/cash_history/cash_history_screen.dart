@@ -23,7 +23,8 @@ class CashHistoryScreen extends StatefulWidget {
   State<CashHistoryScreen> createState() => _CashHistoryScreenState();
 }
 
-class _CashHistoryScreenState extends State<CashHistoryScreen> with SingleTickerProviderStateMixin {
+class _CashHistoryScreenState extends State<CashHistoryScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   Map<String, List<Transaction>> transactions = {
     '출금내역': [],
@@ -40,21 +41,27 @@ class _CashHistoryScreenState extends State<CashHistoryScreen> with SingleTicker
   Future<void> _fetchPointDetail() async {
     try {
       final authProvider = context.read<AuthProvider>();
-      final userId = authProvider.user?.userId;
-      
+      final user = await authProvider.user;
+      final userId = user?.userId;
+
       if (userId != null) {
-        final dio = DioService.getInstance(context);
-        final response = await dio.post('/my/point/detail', data: {'userId': userId});
+        final dio = DioService.instance;
+        final response =
+            await dio.post('/my/point/detail', data: {'userId': userId});
 
         if (response.data != null) {
-          final fetchedTransactions = (response.data as List).map((transaction) {
+          final fetchedTransactions =
+              (response.data as List).map((transaction) {
             final date = DateTime.parse(transaction['pointDate']);
-            final formattedDate = date.toLocal().toString()
+            final formattedDate = date
+                .toLocal()
+                .toString()
                 .replaceAll('.', '-')
                 .substring(0, 19); // YYYY-MM-DD HH:mm:ss 형식
 
             return Transaction(
-              title: transaction['pointAction'] == 'POINT_WITHDRAW' ? '출금' : '적립',
+              title:
+                  transaction['pointAction'] == 'POINT_WITHDRAW' ? '출금' : '적립',
               date: formattedDate,
               amount: transaction['pointDelta'],
             );
@@ -62,8 +69,10 @@ class _CashHistoryScreenState extends State<CashHistoryScreen> with SingleTicker
 
           setState(() {
             transactions = {
-              '출금내역': fetchedTransactions.where((t) => t.title == '출금').toList(),
-              '적립내역': fetchedTransactions.where((t) => t.title == '적립').toList(),
+              '출금내역':
+                  fetchedTransactions.where((t) => t.title == '출금').toList(),
+              '적립내역':
+                  fetchedTransactions.where((t) => t.title == '적립').toList(),
             };
           });
         }
@@ -76,7 +85,7 @@ class _CashHistoryScreenState extends State<CashHistoryScreen> with SingleTicker
   @override
   Widget build(BuildContext context) {
     final currentLocale = Localizations.localeOf(context).languageCode;
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('포인트 내��'),
@@ -172,4 +181,4 @@ class _CashHistoryScreenState extends State<CashHistoryScreen> with SingleTicker
     _tabController.dispose();
     super.dispose();
   }
-} 
+}

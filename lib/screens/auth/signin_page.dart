@@ -12,7 +12,7 @@ import '../../utils/responsive.dart';
 
 class SignInPage extends StatefulWidget {
   final Locale? locale;
-  
+
   const SignInPage({super.key, this.locale});
 
   @override
@@ -34,7 +34,7 @@ class _SignInPageState extends State<SignInPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _dio = DioService.getInstance(context);
+    _dio = DioService.instance;
   }
 
   Widget _buildSideMenu() {
@@ -141,7 +141,8 @@ class _SignInPageState extends State<SignInPage> {
                           borderRadius: BorderRadius.circular(kBorderRadius),
                         ),
                       ),
-                      child: Text(AppLocalizations.of(context).verifyCodeButton),
+                      child:
+                          Text(AppLocalizations.of(context).verifyCodeButton),
                     ),
                     if (_timeLeft > 0) ...[
                       const SizedBox(height: 4),
@@ -193,7 +194,8 @@ class _SignInPageState extends State<SignInPage> {
       return;
     }
 
-    final response = await _dio.post('/members/verify/send', 
+    final response = await _dio.post(
+      '/members/verify/send',
       queryParameters: {
         'email': _emailController.text,
       },
@@ -210,7 +212,8 @@ class _SignInPageState extends State<SignInPage> {
   }
 
   Future<void> _handleCodeVerification() async {
-    final response = await _dio.post('/members/verify/check',
+    final response = await _dio.post(
+      '/members/verify/check',
       queryParameters: {
         'email': _emailController.text,
         'code': _verificationCodeController.text,
@@ -261,7 +264,7 @@ class _SignInPageState extends State<SignInPage> {
     setState(() {
       _timeLeft = 300; // 5분
     });
-    
+
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         if (_timeLeft > 0) {
@@ -303,7 +306,6 @@ class _SignInPageState extends State<SignInPage> {
                 child: _buildSideMenu(),
               ),
             ),
-          
           Expanded(
             flex: isDesktop(context) ? 1 : 2,
             child: Container(
@@ -322,7 +324,7 @@ class _SignInPageState extends State<SignInPage> {
                         leading: IconButton(
                           icon: const Icon(Icons.arrow_back),
                           onPressed: () {
-                            final currentLocale = 
+                            final currentLocale =
                                 Localizations.localeOf(context).languageCode;
                             context.go('/$currentLocale/login');
                           },
@@ -333,7 +335,6 @@ class _SignInPageState extends State<SignInPage> {
                         ],
                       ),
                     ),
-                  
                   if (!isMobile(context))
                     Positioned(
                       top: 16,
@@ -347,14 +348,13 @@ class _SignInPageState extends State<SignInPage> {
                         child: const LanguageDropdown(),
                       ),
                     ),
-                  
                   if (!isMobile(context))
                     Positioned(
                       top: 16,
                       left: 16,
                       child: TextButton.icon(
                         onPressed: () {
-                          final currentLocale = 
+                          final currentLocale =
                               Localizations.localeOf(context).languageCode;
                           context.go('/$currentLocale/login');
                         },
@@ -362,7 +362,6 @@ class _SignInPageState extends State<SignInPage> {
                         label: Text(AppLocalizations.of(context).loginTitle),
                       ),
                     ),
-                  
                   Center(
                     child: SingleChildScrollView(
                       padding: EdgeInsets.all(isMobile(context) ? 16 : 32),

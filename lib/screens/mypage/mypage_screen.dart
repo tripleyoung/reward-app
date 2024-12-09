@@ -25,12 +25,13 @@ class _MyPageScreenState extends State<MyPageScreen> {
   Future<void> _fetchUserInfo() async {
     try {
       final authProvider = context.read<AuthProvider>();
-      final userId = authProvider.user?.userId;
-      
+      final user = await authProvider.user;
+      final userId = user?.userId;
+
       if (userId != null) {
-        final dio = DioService.getInstance(context);
+        final dio = DioService.instance;
         final response = await dio.post('/my/point', data: {'userId': userId});
-        
+
         if (response.data['success']) {
           setState(() {
             _point = response.data['userPoint'] ?? 0;
@@ -48,15 +49,15 @@ class _MyPageScreenState extends State<MyPageScreen> {
 
   Future<void> _handleLogout() async {
     setState(() => _error = null);
-    
+
     try {
-      final dio = DioService.getInstance(context);
+      final dio = DioService.instance;
       await dio.post('/auth/logout');
-      
+
       if (mounted) {
         final authProvider = context.read<AuthProvider>();
         await authProvider.logout();
-        
+
         final currentLocale = Localizations.localeOf(context).languageCode;
         context.go('/$currentLocale/login');
       }
@@ -71,7 +72,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
   @override
   Widget build(BuildContext context) {
     final currentLocale = Localizations.localeOf(context).languageCode;
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('마이페이지'),
@@ -112,7 +113,8 @@ class _MyPageScreenState extends State<MyPageScreen> {
                           ],
                         ),
                         ElevatedButton(
-                          onPressed: () => context.go('/$currentLocale/cash-history'),
+                          onPressed: () =>
+                              context.go('/$currentLocale/cash-history'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,
                             foregroundColor: Colors.white,
@@ -146,7 +148,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // 메뉴 카드
             Card(
               child: Column(
@@ -197,4 +199,4 @@ class _MyPageScreenState extends State<MyPageScreen> {
       onTap: onTap,
     );
   }
-} 
+}

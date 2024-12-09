@@ -38,13 +38,14 @@ class _MissionsScreenState extends State<MissionsScreen> {
 
   Future<void> _fetchMissions() async {
     try {
-      final dio = DioService.getInstance(context);
+      final dio = DioService.instance;
       final response = await dio.get('/reward/mission/list');
-      
+
       if (response.data != null) {
         final List<dynamic> missionsData = response.data;
         setState(() {
-          missions = missionsData.map((data) => Mission.fromJson(data)).toList();
+          missions =
+              missionsData.map((data) => Mission.fromJson(data)).toList();
         });
       }
     } catch (e) {
@@ -77,7 +78,8 @@ class _MissionsScreenState extends State<MissionsScreen> {
           itemBuilder: (context, index) {
             final mission = missions[index];
             return MouseRegion(
-              onEnter: (_) => setState(() => hoveredMissionId = mission.rewardNo),
+              onEnter: (_) =>
+                  setState(() => hoveredMissionId = mission.rewardNo),
               onExit: (_) => setState(() => hoveredMissionId = null),
               child: _buildMissionCard(mission, currentLocale),
             );
@@ -102,7 +104,8 @@ class _MissionsScreenState extends State<MissionsScreen> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => context.go('/$currentLocale/mission/${mission.rewardNo}'),
+          onTap: () =>
+              context.go('/$currentLocale/mission/${mission.rewardNo}'),
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -165,4 +168,4 @@ class _MissionsScreenState extends State<MissionsScreen> {
       ),
     );
   }
-} 
+}

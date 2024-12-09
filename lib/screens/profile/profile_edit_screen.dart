@@ -72,10 +72,11 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   Future<void> _initFormData() async {
     try {
       final authProvider = context.read<AuthProvider>();
-      final userId = authProvider.user?.userId;
+         final user = await authProvider.user;
+      final userId = user?.userId;
       
       if (userId != null) {
-        final dio = DioService.getInstance(context);
+        final dio = DioService.instance;
         final response = await dio.post('api/v1/user/info', data: {'userId': userId});
         
         if (response.data != null) {
@@ -101,7 +102,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   Future<void> _handleSubmit() async {
     if (_formKey.currentState?.validate() ?? false) {
       try {
-        final dio = DioService.getInstance(context);
+        final dio = DioService.instance;
         await dio.post('/my/info/modify', data: _formData.toJson());
         
         if (mounted) {

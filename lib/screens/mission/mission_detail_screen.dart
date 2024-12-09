@@ -57,9 +57,9 @@ class _MissionDetailScreenState extends State<MissionDetailScreen> {
 
   Future<void> _fetchMission() async {
     try {
-      final dio = DioService.getInstance(context);
+      final dio = DioService.instance;
       final response = await dio.get('/reward/mission/${widget.rewardNo}');
-      
+
       if (response.data != null) {
         setState(() {
           mission = Mission.fromJson(response.data);
@@ -73,15 +73,16 @@ class _MissionDetailScreenState extends State<MissionDetailScreen> {
   Future<void> _handleMissionAnswer() async {
     try {
       final authProvider = context.read<AuthProvider>();
-      final userId = authProvider.user?.userId;
-      
+      final user = await authProvider.user;
+      final userId = user?.userId;
+
       if (userId != null) {
-        final dio = DioService.getInstance(context);
+        final dio = DioService.instance;
         await dio.post('/reward/mission/success/${widget.rewardNo}', data: {
           'userId': userId,
           'missionAnswer': _answerController.text,
         });
-        
+
         setState(() => _message = '미션 성��했습니다!');
       }
     } catch (e) {
@@ -278,4 +279,4 @@ class _MissionDetailScreenState extends State<MissionDetailScreen> {
     _answerController.dispose();
     super.dispose();
   }
-} 
+}

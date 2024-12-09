@@ -22,14 +22,15 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
 
   Future<void> _checkAuthStatus() async {
     developer.log('=== Checking Auth Status ===');
-    
+
     try {
       // 1. 토큰 확인
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final accessToken = AuthService.getCookie('accessToken');
       final refreshToken = AuthService.getCookie('refreshToken');
-      
-      developer.log('Tokens found - Access: ${accessToken != null}, Refresh: ${refreshToken != null}');
+
+      developer.log(
+          'Tokens found - Access: ${accessToken != null}, Refresh: ${refreshToken != null}');
 
       if (accessToken == null || refreshToken == null) {
         developer.log('No tokens found');
@@ -42,19 +43,19 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
         accessToken: accessToken,
         refreshToken: refreshToken,
       );
-      
+
       developer.log('Tokens set in AuthProvider');
 
       // 3. 토큰이 설정된 후 사용자 정보 요청
-      final dio = DioService.getInstance(context);
+      final dio = DioService.instance;
       final response = await dio.get('/members/me');
-      
+
       if (response.statusCode == 200) {
         developer.log('User info retrieved successfully');
-        
+
         // 4. 약간의 지연을 추가하여 상태 업데이트가 완료되도록 함
         await Future.delayed(const Duration(milliseconds: 100));
-        
+
         if (mounted) {
           final currentLocale = Localizations.localeOf(context).languageCode;
           developer.log('Redirecting to /$currentLocale/home');
@@ -86,4 +87,4 @@ class _AuthCallbackPageState extends State<AuthCallbackPage> {
       ),
     );
   }
-} 
+}
