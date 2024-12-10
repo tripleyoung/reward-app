@@ -10,6 +10,9 @@ enum Environment {
 class AppConfig {
   static Environment _environment = Environment.dev;
 
+  static String get businessDomain => _environment == Environment.prod
+      ? 'https://business.reward-factory.shop'
+      : 'http://localhost:46152';
   static void initialize(Environment env) {
     _environment = env;
   }

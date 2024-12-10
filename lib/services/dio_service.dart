@@ -8,6 +8,9 @@ import '../config/app_config.dart';
 class DioService {
   static Dio? _instance;
   static BuildContext? _context;
+  static int _refreshAttempts = 0;  // 토큰 갱신 시도 횟수
+  static const int _maxRefreshAttempts = 3;  // 최대 시도 횟수
+  static bool _isRefreshing = false;  // 현재 갱신 중인지 여부
 
   // 토스트 메시지 표시 유틸리티 메서드
   static void _showToast(BuildContext context, String message, bool success) {
@@ -100,8 +103,7 @@ class DioService {
   }
 
   // 토큰 처리
-  static Future<void> _handleTokens(
-      RequestOptions options, AuthProvider authProvider) async {
+  static Future<void> _handleTokens(RequestOptions options, AuthProvider authProvider) async {
     final accessToken = authProvider.accessToken;
 
     // 액세스 토큰은 항상 전송 (refresh 엔드포인트 제외)
@@ -151,8 +153,7 @@ class DioService {
       }
 
       if (_context == null) {
-        throw Exception(
-            'DioService not initialized. Call DioService.init() first.');
+        throw Exception('DioService not initialized. Call DioService.init() first.');
       }
 
       final authProvider = Provider.of<AuthProvider>(_context!, listen: false);
@@ -195,57 +196,44 @@ class DioService {
           onError: (error, handler) async {
             _logDioError(error);
 
-            if (error.response?.statusCode == 401 &&
+            if (error.response?.statusCode == 401 && 
                 !error.requestOptions.path.endsWith('/members/refresh')) {
+              
+              // 갱신 시도 횟수와 현재 상태 체크
+              if (_refreshAttempts >= _maxRefreshAttempts || _isRefreshing) {
+                _refreshAttempts = 0;  // 횟수 초기화
+                return handler.next(error);
+              }
+
+              _isRefreshing = true;
+              _refreshAttempts++;
+
               try {
-                if (kDebugMode) {
-                  print('Attempting to refresh token due to 401 error');
-                  print('Original request: ${error.requestOptions.path}');
-                  print('Current access token: ${authProvider.accessToken}');
-                  print('Current refresh token: ${authProvider.refreshToken}');
-                }
-
                 final isRefreshed = await authProvider.refreshAuthToken();
-                if (kDebugMode) {
-                  print('Refresh result: $isRefreshed');
-                  print('New access token: ${authProvider.accessToken}');
-                }
-
+                
                 if (isRefreshed) {
-                  if (kDebugMode) {
-                    print(
-                        'Token refreshed successfully, retrying original request');
-                  }
-
                   final opts = Options(
                     method: error.requestOptions.method,
                     headers: {...error.requestOptions.headers},
                   );
-                  opts.headers!['Authorization'] =
-                      'Bearer ${authProvider.accessToken}';
+                  opts.headers!['Authorization'] = 'Bearer ${authProvider.accessToken}';
 
-                  // 원래 요청 재시도
                   final response = await _instance!.request(
                     error.requestOptions.path,
                     options: opts,
                     data: error.requestOptions.data,
                     queryParameters: error.requestOptions.queryParameters,
                   );
+
+                  _refreshAttempts = 0;  // 성공시 횟수 초기화
                   return handler.resolve(response);
-                } else {
-                  if (kDebugMode) {
-                    print(
-                        'Token refresh failed, but not logging out automatically');
-                  }
-                  // 토큰 갱신 실패시에도 로그아웃하지 않고 에러만 전달
-                  return handler.next(error);
                 }
               } catch (e) {
                 if (kDebugMode) {
                   print('Error during token refresh: $e');
                 }
-                // 예외 발생시에도 로그아웃하지 않고 에러만 전달
-                return handler.next(error);
+              } finally {
+                _isRefreshing = false;
               }
             }
 

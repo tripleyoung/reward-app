@@ -1,8 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:dio/dio.dart';
+import 'package:reward/services/dio_service.dart'; // Assuming DioService uses Dio package
 
-class MissionListScreen extends StatelessWidget {
+class MissionListScreen extends StatefulWidget {
   const MissionListScreen({super.key});
+
+  @override
+  State<MissionListScreen> createState() => _MissionListScreenState();
+}
+
+class _MissionListScreenState extends State<MissionListScreen> {
+  int totalMissions = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTotalMissions();
+  }
+
+  Future<void> _fetchTotalMissions() async {
+    try {
+      final dio = DioService.instance;
+      final response = await dio.get('/active-missions', queryParameters: {
+        'page': 0,
+        'size': 1,  // 첫 페이지의 1개만 요청
+      });
+
+      if (response.data != null && response.data['data'] != null) {
+        final data = response.data['data'];
+        setState(() {
+          totalMissions = data['totalElements'] as int;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching total missions: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -10,9 +44,9 @@ class MissionListScreen extends StatelessWidget {
     
     final socialApps = [
       {
-        'name': '네이버',
-        'icon': 'N',
-        'unread': 216,
+        'name': '스토어',
+        'icon': 'S',
+        'unread': totalMissions,
         'onTap': () => context.go('/$currentLocale/missions'),
       },
       // 필요한 경우 다른 앱들 추가
@@ -114,4 +148,4 @@ class MissionListScreen extends StatelessWidget {
       ),
     );
   }
-} 
+}

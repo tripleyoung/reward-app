@@ -149,10 +149,10 @@ final router = GoRouter(
       ),
     ),
     GoRoute(
-      path: '/:locale/mission/:rewardNo',
+      path: '/:locale/mission/:missionId',
       builder: (context, state) => HomeLayout(
         child: MissionDetailScreen(
-          rewardNo: int.parse(state.pathParameters['rewardNo']!),
+          missionId: state.pathParameters['missionId']!, 
         ),
       ),
     ),

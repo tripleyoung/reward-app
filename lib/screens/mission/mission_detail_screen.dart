@@ -7,38 +7,41 @@ import '../../services/dio_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class Mission {
+  final int id;
+  final String title;
+  final String description;
   final int rewardPoint;
-  final String keyword;
-  final String advertiserChannel;
-  final String productName;
-  final String rewardProductPrice;
-  final String priceComparison;
+  final String status;
+  final String missionUrl;
 
   Mission({
+    required this.id,
+    required this.title,
+    required this.description,
     required this.rewardPoint,
-    required this.keyword,
-    required this.advertiserChannel,
-    required this.productName,
-    required this.rewardProductPrice,
-    required this.priceComparison,
+    required this.status,
+    required this.missionUrl,
   });
 
   factory Mission.fromJson(Map<String, dynamic> json) {
     return Mission(
+      id: json['id'] as int,
+      title: json['title'] as String,
+      description: json['description'] as String,
       rewardPoint: json['rewardPoint'] as int,
-      keyword: json['keyword'] as String,
-      advertiserChannel: json['advertiserChannel'] as String,
-      productName: json['productName'] as String,
-      rewardProductPrice: json['rewardProductPrice'] as String,
-      priceComparison: json['priceComparison'] as String,
+      status: json['status'] as String,
+      missionUrl: json['missionUrl'] as String,
     );
   }
 }
 
 class MissionDetailScreen extends StatefulWidget {
-  final int rewardNo;
+  final String missionId;
 
-  const MissionDetailScreen({super.key, required this.rewardNo});
+  const MissionDetailScreen({
+    super.key, 
+    required this.missionId,
+  });
 
   @override
   State<MissionDetailScreen> createState() => _MissionDetailScreenState();
@@ -58,15 +61,23 @@ class _MissionDetailScreenState extends State<MissionDetailScreen> {
   Future<void> _fetchMission() async {
     try {
       final dio = DioService.instance;
-      final response = await dio.get('/reward/mission/${widget.rewardNo}');
+      final missionId = int.parse(widget.missionId);  
+      final response = await dio.get('/active-missions/$missionId');
 
-      if (response.data != null) {
+      if (response.data != null && response.data['data'] != null) {  
         setState(() {
-          mission = Mission.fromJson(response.data);
+          mission = Mission.fromJson(response.data['data']);  
+        });
+      } else {
+        setState(() {
+          _message = '미션 정보가 없습니다.';
         });
       }
     } catch (e) {
       debugPrint('Error fetching mission: $e');
+      setState(() {
+        _message = '미션을 불러오는데 실패했습니다.';
+      });
     }
   }
 
@@ -78,12 +89,12 @@ class _MissionDetailScreenState extends State<MissionDetailScreen> {
 
       if (userId != null) {
         final dio = DioService.instance;
-        await dio.post('/reward/mission/success/${widget.rewardNo}', data: {
+        await dio.post('/store-missions/${widget.missionId}/complete', data: {
           'userId': userId,
           'missionAnswer': _answerController.text,
         });
 
-        setState(() => _message = '미션 성��했습니다!');
+        setState(() => _message = '미션 완료했습니다!');
       }
     } catch (e) {
       setState(() => _message = '미션 실패!');
@@ -91,8 +102,8 @@ class _MissionDetailScreenState extends State<MissionDetailScreen> {
   }
 
   Future<void> _copyKeyword() async {
-    if (mission?.keyword != null) {
-      await Clipboard.setData(ClipboardData(text: mission!.keyword));
+    if (mission?.description != null) {
+      await Clipboard.setData(ClipboardData(text: mission!.description));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('키워드가 클립보드에 복사되었습니다!')),
@@ -101,10 +112,14 @@ class _MissionDetailScreenState extends State<MissionDetailScreen> {
     }
   }
 
-  Future<void> _launchMission() async {
-    const url = 'https://shopping.naver.com/home';
+  Future<void> _launchURL() async {
+    if (mission == null) return;
+    
+    final url = mission!.missionUrl;
     if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url));
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } else {
+      setState(() => _message = 'URL을 열 수 없습니다.');
     }
   }
 
@@ -112,163 +127,178 @@ class _MissionDetailScreenState extends State<MissionDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        title: const Text('미션하기'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            final locale = Localizations.localeOf(context).languageCode;
+            context.go('/$locale/missions');
+          },
         ),
-        title: const Text('미션하기'),
-        elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
       ),
       body: mission == null
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  _buildMissionCard(),
-                  const SizedBox(height: 16),
-                  _buildTipCard(),
-                ],
-              ),
-            ),
-      bottomNavigationBar: _buildBottomButtons(),
-    );
-  }
-
-  Widget _buildMissionCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '미션 +${mission!.rewardPoint}p',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.green,
-                  ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '진행 설명',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                RichText(
+                                  text: TextSpan(
+                                    style: DefaultTextStyle.of(context).style,
+                                    children: [
+                                      const TextSpan(text: '미션 '),
+                                      TextSpan(
+                                        text: '+${mission!.rewardPoint}P',
+                                        style: const TextStyle(
+                                          color: Colors.green,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                ElevatedButton(
+                                  onPressed: _copyKeyword,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  child: const Text('키워드 복사하기'),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildStep('키워드 복사 붙여넣기'),
+                                _buildStep('미션 시작'),
+                                _buildStep('검색 결과에서 상품 찾기'),
+                                _buildStep('상품 상세 페이지로 이동'),
+                                _buildStep('상품번호 찾아서 복사'),
+                                _buildStep('아래 정답란에 붙여넣기'),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '진행팁',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              '와이파이를 해제 후 모바일 데이터를 켠 상태에서, 복사한 키워드를 네이버 쇼핑 검색창에 붙여넣기 하여 검색해주세요.',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _answerController,
+                      decoration: const InputDecoration(
+                        labelText: '상품번호 입력',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _handleMissionAnswer,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            child: const Text('정답제출'),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _launchURL,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            child: const Text('미션시작'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_message.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        _message,
+                        style: TextStyle(
+                          color: _message.contains('성공') ? Colors.green : Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-                ElevatedButton(
-                  onPressed: _copyKeyword,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                  ),
-                  child: const Text('키워드 복사하기'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildInstructionList(),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _answerController,
-              decoration: const InputDecoration(
-                labelText: '상품번호 입력',
-                border: OutlineInputBorder(),
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 
-  Widget _buildInstructionList() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildListItem('키워드 복사 붙여넣기'),
-        _buildListItem('미션 시작'),
-        _buildListItem('가격비교 여부: ${mission!.priceComparison}'),
-        _buildListItem('상품명: ${mission!.productName}'),
-        _buildListItem('판매처: ${mission!.advertiserChannel}'),
-        _buildListItem('가격: ${mission!.rewardProductPrice}'),
-        _buildListItem('아래로 스크롤 해서 구매추가정보를 눌러'),
-        _buildListItem('상품번호를 복사후'),
-        _buildListItem('정답란에 붙여넣기 확인 입력'),
-      ],
-    );
-  }
-
-  Widget _buildListItem(String text) {
+  Widget _buildStep(String text) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
-          Expanded(child: Text(text)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTipCard() {
-    return const Card(
-      child: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '진행팁',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              '와이파이를 해제 후 모바일 데이터를 켠 상태에서, 복사한 키워드를 네이버 쇼핑 검색창에 붙여넣기 하여 검색해주세요.',
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomButtons() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Expanded(
-            child: ElevatedButton(
-              onPressed: _handleMissionAnswer,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              child: const Text(
-                '정답제출',
-                style: TextStyle(fontSize: 16),
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.check,
+                size: 16,
+                color: Colors.green,
               ),
             ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: ElevatedButton(
-              onPressed: _launchMission,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              child: const Text(
-                '미션시작',
-                style: TextStyle(fontSize: 16),
-              ),
-            ),
-          ),
+          const SizedBox(width: 8),
+          Text(text),
         ],
       ),
     );

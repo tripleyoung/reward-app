@@ -116,7 +116,7 @@ class _HomePageState extends State<HomePage> {
                   _buildMenuCard(
                     icon: Icons.calendar_today,
                     label: '오늘의 미션',
-                    onTap: () => context.go('/$currentLocale/today-mission'),
+                    onTap: () => context.go('/$currentLocale/mission-list'),
                   ),
                   _buildMenuCard(
                     icon: Icons.account_balance_wallet,
