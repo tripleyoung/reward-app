@@ -20,19 +20,28 @@ class AppConfig {
           defaultTargetPlatform == TargetPlatform.linux ||
           defaultTargetPlatform == TargetPlatform.macOS);
 
-  static String get apiBaseUrl => const String.fromEnvironment(
-        'API_BASE_URL',
-        defaultValue: 'http://localhost:8080',
-      );
+  static String get apiBaseUrl {
+    if (_environment == Environment.dev && !kIsWeb) {
+      if (Platform.isAndroid) {
+        return 'http://10.0.2.2:8080'; // 안드로이드 에뮬레이터용
+      }
+    }
+
+    return const String.fromEnvironment(
+      'API_BASE_URL',
+      defaultValue: 'http://localhost:8080',
+    );
+  }
 
   static String get apiPath => '/api/v1';
 
   // Google OAuth
   static String get googleWebClientId => const String.fromEnvironment(
         'GOOGLE_WEB_CLIENT_ID',
-        defaultValue: '',
+        defaultValue:
+            '133048024494-v9q4qimam6cl70set38o8tdbj3mcr0ss.apps.googleusercontent.com',
       );
-  
+
   static String get googleAndroidClientId => const String.fromEnvironment(
         'GOOGLE_ANDROID_CLIENT_ID',
         defaultValue: '',
@@ -44,7 +53,7 @@ class AppConfig {
     return '';
   }
 
-  static String get businessDomain => _environment == Environment.prod
-      ? 'https://business.reward-factory.shop'
-      : 'http://localhost:46152';
+  static String get rewardAppUrl => _environment == Environment.prod
+      ? 'https://app.reward-factory.shop'
+      : 'http://localhost:46151';
 }

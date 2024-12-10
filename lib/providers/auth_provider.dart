@@ -3,10 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import 'package:dio/dio.dart';
 import '../models/api_response.dart';
 import '../models/token_dto.dart';
-import '../config/app_config.dart';
 import '../services/dio_service.dart';
 
 class AuthProvider extends ChangeNotifier {

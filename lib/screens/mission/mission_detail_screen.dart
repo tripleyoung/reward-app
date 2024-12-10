@@ -210,12 +210,12 @@ class _MissionDetailScreenState extends State<MissionDetailScreen> {
   }
 
   Widget _buildTipCard() {
-    return Card(
+    return const Card(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             Text(
               '진행팁',
               style: TextStyle(

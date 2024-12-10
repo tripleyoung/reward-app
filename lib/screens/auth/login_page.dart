@@ -13,7 +13,6 @@ import '../../providers/auth_provider.dart';
 import 'package:flutter/foundation.dart';
 import '../../models/token_dto.dart'; // 경로 수정
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uni_links/uni_links.dart';
 import 'dart:async';
 import 'package:url_launcher/url_launcher.dart';
 import '../../config/app_config.dart';
@@ -129,7 +128,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildLoginForm() {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

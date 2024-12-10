@@ -22,15 +22,13 @@ final router = GoRouter(
   redirect: (context, state) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final locale = Localizations.localeOf(context).languageCode;
-        // 초기화가 완료될 때까지 대기
+    // 초기화가 완료될 때까지 대기
     if (!authProvider.isInitialized) {
       await authProvider.initializeAuth();
     }
     // 현재 경로에서 해시(#)와 쿼리 파라미터 제거
-    final path = state.uri.path
-        .replaceAll('#', '')
-        .split('?')[0];  // 쿼리 파라미터 제거
-    
+    final path = state.uri.path.replaceAll('#', '').split('?')[0]; // 쿼리 파라미터 제거
+
     if (kDebugMode) {
       print('🔄 Router Redirect:');
       print('Current path: $path');
@@ -38,23 +36,24 @@ final router = GoRouter(
       print('isAuthenticated: ${authProvider.isAuthenticated}');
       print('Locale: $locale');
     }
-    
+
     // callback 페이지인 경우 locale을 추가하여 리다이렉트
     if (path == '/auth/callback') {
       return '/$locale/auth/callback';
     }
-    
+
     // 인증이 필요하지 않은 경로들
     final publicPaths = [
       '/$locale/login',
       '/$locale/signin',
-      '/auth/callback',  // locale 없는 버전도 추가
+      '/auth/callback', // locale 없는 버전도 추가
       '/$locale/auth/callback',
     ];
 
     // 루트 경로나 locale만 있는 경로 처리
     if (path == '/' || path == '/$locale') {
-      final redirectPath = authProvider.isAuthenticated ? '/$locale/home' : '/$locale/login';
+      final redirectPath =
+          authProvider.isAuthenticated ? '/$locale/home' : '/$locale/login';
       if (kDebugMode) print('⏩ Root path redirect: $redirectPath');
       return redirectPath;
     }
@@ -115,38 +114,38 @@ final router = GoRouter(
     ),
     GoRoute(
       path: '/:locale/mypage',
-      builder: (context, state) => HomeLayout(
-        child: const MyPageScreen(),
+      builder: (context, state) => const HomeLayout(
+        child: MyPageScreen(),
       ),
     ),
     GoRoute(
       path: '/:locale/cash-history',
-      builder: (context, state) => HomeLayout(
-        child: const CashHistoryScreen(),
+      builder: (context, state) => const HomeLayout(
+        child: CashHistoryScreen(),
       ),
     ),
     GoRoute(
       path: '/:locale/withdrawal-request',
-      builder: (context, state) => HomeLayout(
-        child: const WithdrawalRequestScreen(),
+      builder: (context, state) => const HomeLayout(
+        child: WithdrawalRequestScreen(),
       ),
     ),
     GoRoute(
       path: '/:locale/profile-edit',
-      builder: (context, state) => HomeLayout(
-        child: const ProfileEditScreen(),
+      builder: (context, state) => const HomeLayout(
+        child: ProfileEditScreen(),
       ),
     ),
     GoRoute(
       path: '/:locale/mission-list',
-      builder: (context, state) => HomeLayout(
-        child: const MissionListScreen(),
+      builder: (context, state) => const HomeLayout(
+        child: MissionListScreen(),
       ),
     ),
     GoRoute(
       path: '/:locale/missions',
-      builder: (context, state) => HomeLayout(
-        child: const MissionsScreen(),
+      builder: (context, state) => const HomeLayout(
+        child: MissionsScreen(),
       ),
     ),
     GoRoute(
@@ -158,4 +157,4 @@ final router = GoRouter(
       ),
     ),
   ],
-); 
+);
