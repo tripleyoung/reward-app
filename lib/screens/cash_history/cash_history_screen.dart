@@ -1,19 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
-import '../../providers/auth_provider.dart';
 import '../../services/dio_service.dart';
+import 'package:intl/intl.dart';
 
-class Transaction {
-  final String title;
-  final String date;
-  final int amount;
+class CashHistory {
+  final int id;
+  final double amount;
+  final String type;
+  final String description;
+  final DateTime createdAt;
+  final double balance;
 
-  Transaction({
-    required this.title,
-    required this.date,
+  CashHistory({
+    required this.id,
     required this.amount,
+    required this.type,
+    required this.description,
+    required this.createdAt,
+    required this.balance,
   });
+
+  factory CashHistory.fromJson(Map<String, dynamic> json) {
+    return CashHistory(
+      id: json['id'],
+      amount: json['amount'].toDouble(),
+      type: json['type'],
+      description: json['description'],
+      createdAt: DateTime.parse(json['createdAt']),
+      balance: json['balance'].toDouble(),
+    );
+  }
 }
 
 class CashHistoryScreen extends StatefulWidget {
@@ -23,162 +39,90 @@ class CashHistoryScreen extends StatefulWidget {
   State<CashHistoryScreen> createState() => _CashHistoryScreenState();
 }
 
-class _CashHistoryScreenState extends State<CashHistoryScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  Map<String, List<Transaction>> transactions = {
-    '출금내역': [],
-    '적립내역': [],
-  };
+class _CashHistoryScreenState extends State<CashHistoryScreen> {
+  List<CashHistory> _histories = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _fetchPointDetail();
+    _fetchCashHistory();
   }
 
-  Future<void> _fetchPointDetail() async {
+  Future<void> _fetchCashHistory() async {
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
-      final authProvider = context.read<AuthProvider>();
-      final user = await authProvider.user;
-      final userId = user?.userId;
+      final dio = DioService.instance;
+      final response = await dio.get('/members/me/cash-history');
 
-      if (userId != null) {
-        final dio = DioService.instance;
-        final response =
-            await dio.post('/my/point/detail', data: {'userId': userId});
-
-        if (response.data != null) {
-          final fetchedTransactions =
-              (response.data as List).map((transaction) {
-            final date = DateTime.parse(transaction['pointDate']);
-            final formattedDate = date
-                .toLocal()
-                .toString()
-                .replaceAll('.', '-')
-                .substring(0, 19); // YYYY-MM-DD HH:mm:ss 형식
-
-            return Transaction(
-              title:
-                  transaction['pointAction'] == 'POINT_WITHDRAW' ? '출금' : '적립',
-              date: formattedDate,
-              amount: transaction['pointDelta'],
-            );
-          }).toList();
-
-          setState(() {
-            transactions = {
-              '출금내역':
-                  fetchedTransactions.where((t) => t.title == '출금').toList(),
-              '적립내역':
-                  fetchedTransactions.where((t) => t.title == '적립').toList(),
-            };
-          });
-        }
+      if (response.data['success']) {
+        final List<dynamic> historyData = response.data['data'];
+        setState(() {
+          _histories = historyData.map((data) => CashHistory.fromJson(data)).toList();
+        });
       }
     } catch (e) {
-      debugPrint('Error fetching point detail: $e');
+      if (kDebugMode) {
+        print('Error fetching cash history: $e');
+      }
+      // TODO: Show error message
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentLocale = Localizations.localeOf(context).languageCode;
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('포인트 내��'),
+        title: const Text('캐시 내역'),
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: '출금내역'),
-            Tab(text: '적립내역'),
-          ],
-          labelColor: Colors.black87,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: Colors.green,
-        ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildTransactionList(transactions['출금내역'] ?? []),
-          _buildTransactionList(transactions['적립내역'] ?? []),
-        ],
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ElevatedButton(
-          onPressed: () => context.go('/$currentLocale/withdrawal-request'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            textStyle: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+      body: ListView.builder(
+        itemCount: _histories.length,
+        itemBuilder: (context, index) {
+          final history = _histories[index];
+          return ListTile(
+            leading: Icon(
+              history.type == 'EARN' ? Icons.add_circle : Icons.remove_circle,
+              color: history.type == 'EARN' ? Colors.green : Colors.red,
             ),
-          ),
-          child: const Text('출금 신청하기'),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTransactionList(List<Transaction> items) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final transaction = items[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            title: Text(history.description),
+            subtitle: Text(DateFormat('yyyy-MM-dd HH:mm').format(history.createdAt)),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      transaction.title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      transaction.date,
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
+                Text(
+                  '${history.type == 'EARN' ? '+' : '-'}${history.amount.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    color: history.type == 'EARN' ? Colors.green : Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Text(
-                  '${transaction.amount > 0 ? '+' : ''}${transaction.amount} 포인트',
-                  style: TextStyle(
-                    color: transaction.amount > 0 ? Colors.green : Colors.red,
-                    fontWeight: FontWeight.bold,
+                  '잔액: ${history.balance.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
                   ),
                 ),
               ],
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 }

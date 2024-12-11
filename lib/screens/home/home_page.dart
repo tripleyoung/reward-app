@@ -1,3 +1,4 @@
+   import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -25,42 +26,65 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _fetchUserInfo() async {
     try {
+      // 유저 정보는 AuthProvider에서 가져오기
       final authProvider = context.read<AuthProvider>();
       final user = await authProvider.user;
-      final userId = user?.userId;
+      
+      if (user != null) {
+        if (kDebugMode) {
+          print('User info: ${user.toJson()}');
+        }
+        setState(() {
+          _userNickname = user.nickname;
+        });
+      }
 
-      if (userId != null) {
+      // 포인트는 별도 API로 가져오기
+      try {
         final dio = DioService.instance;
-        final response = await dio.post('/my/point', data: {'userId': userId});
+        final response = await dio.get('/members/me/point');
+
+        if (kDebugMode) {
+          print('Point response: ${response.data}');
+        }
 
         if (response.data['success']) {
           setState(() {
-            _point = response.data['userPoint'] ?? 0;
-            _userNickname = response.data['userNickname'] ?? '';
+            _point = (response.data['data']['point'] as num?)?.toInt() ?? 0;
           });
         }
+      } catch (e) {
+        if (kDebugMode) {
+          print('Error fetching points: $e');
+        }
+        setState(() {
+          _point = 0;
+        });
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      if (kDebugMode) {
+        print('Error fetching user info: $e');
+        print('Stack trace: $stackTrace');
+      }
       setState(() {
-        _point = 0;
-        _userNickname = '닉네임을 불러올 수 없음';
+        _userNickname = '사용자';
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentLocale = Localizations.localeOf(context).languageCode;
+    final currentLocale = widget.locale.languageCode;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('리워드'),
-        elevation: 0,
+        title: const Text('홈'),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
       ),
-      body: SingleChildScrollView(
-        child: Padding(
+      body: RefreshIndicator(
+        onRefresh: _fetchUserInfo,
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
@@ -91,8 +115,7 @@ class _HomePageState extends State<HomePage> {
                         ],
                       ),
                       ElevatedButton(
-                        onPressed: () =>
-                            context.go('/$currentLocale/cash-history'),
+                        onPressed: () => context.go('/$currentLocale/cash-history'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
                           foregroundColor: Colors.white,

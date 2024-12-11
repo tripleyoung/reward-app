@@ -115,11 +115,24 @@ class _MissionDetailScreenState extends State<MissionDetailScreen> {
   Future<void> _launchURL() async {
     if (mission == null) return;
     
-    final url = mission!.missionUrl;
-    if (await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-    } else {
-      setState(() => _message = 'URL을 열 수 없습니다.');
+    try {
+      final uri = Uri.parse(mission!.missionUrl);
+      if (!await launchUrl(
+        uri,
+        mode: LaunchMode.inAppBrowserView,
+        webViewConfiguration: const WebViewConfiguration(
+          enableJavaScript: true,
+          enableDomStorage: true,
+        ),
+      )) {
+        if (mounted) {
+          setState(() => _message = 'URL을 열 수 없습니다. (${mission!.missionUrl})');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _message = '잘못된 URL 형식입니다: ${e.toString()}');
+      }
     }
   }
 

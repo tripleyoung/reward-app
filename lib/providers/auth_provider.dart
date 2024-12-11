@@ -207,7 +207,7 @@ class UserInfo {
   final String userName;
   final String email;
   final String role;
-  final String? nickname;
+  final String nickname;
   final String? profileImage;
   final DateTime? createdAt;
 
@@ -216,7 +216,7 @@ class UserInfo {
     required this.userName,
     required this.email,
     required this.role,
-    this.nickname,
+    required this.nickname,
     this.profileImage,
     this.createdAt,
   });
