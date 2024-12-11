@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/dio_service.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class Mission {
   final int id;
@@ -136,6 +137,48 @@ class _MissionDetailScreenState extends State<MissionDetailScreen> {
     }
   }
 
+  Future<void> _startMission() async {
+    try {
+      // 네트워크 연결 상태 확인
+      final connectivityResult = await Connectivity().checkConnectivity();
+      
+      // 연결 상태에 따른 처리
+      if (connectivityResult == ConnectivityResult.none) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('인터넷 연결이 필요합니다.')),
+        );
+        return;
+      }
+
+      // 와이파이 연결 시 미션 시작 불가
+      if (connectivityResult == ConnectivityResult.wifi) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('모바일 데이터로 연결 시에만 미션을 시작할 수 있습니다.')),
+        );
+        return;
+      }
+
+      // URL 실행
+      if (mission?.missionUrl != null) {
+        final url = Uri.parse(mission!.missionUrl);
+        if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('URL을 실행할 수 있는 앱을 찾을 수 없습니다.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('URL 실행 실패: ${e.toString()}')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -262,7 +305,7 @@ class _MissionDetailScreenState extends State<MissionDetailScreen> {
                         const SizedBox(width: 16),
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: _launchURL,
+                            onPressed: _startMission,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green,
                               foregroundColor: Colors.white,

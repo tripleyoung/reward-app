@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/dio_service.dart';
@@ -39,29 +40,88 @@ class CashHistoryScreen extends StatefulWidget {
   State<CashHistoryScreen> createState() => _CashHistoryScreenState();
 }
 
-class _CashHistoryScreenState extends State<CashHistoryScreen> {
+class _CashHistoryScreenState extends State<CashHistoryScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  final ScrollController _scrollController = ScrollController();
   List<CashHistory> _histories = [];
   bool _isLoading = true;
+  bool _hasMore = true;
+  int _currentPage = 0;
+  String _currentType = 'ALL';
+  static const int _pageSize = 20;
 
   @override
   void initState() {
     super.initState();
-    _fetchCashHistory();
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(_handleTabChange);
+    _scrollController.addListener(_handleScroll);
+    _fetchCashHistory(refresh: true);
   }
 
-  Future<void> _fetchCashHistory() async {
+  void _handleTabChange() {
+    if (!_tabController.indexIsChanging) return;
+    
+    setState(() {
+      switch (_tabController.index) {
+        case 0:
+          _currentType = 'ALL';
+          break;
+        case 1:
+          _currentType = 'PAYMENT';
+          break;
+        case 2:
+          _currentType = 'EARN';
+          break;
+      }
+      _histories = [];
+      _currentPage = 0;
+      _hasMore = true;
+      _isLoading = false;
+    });
+    
+    _fetchCashHistory(refresh: true);
+  }
+
+  void _handleScroll() {
+    if (_scrollController.position.pixels == _scrollController.position.maxScrollExtent) {
+      if (!_isLoading && _hasMore) {
+        _fetchCashHistory(refresh: false);
+      }
+    }
+  }
+
+  Future<void> _fetchCashHistory({required bool refresh}) async {
+    if (_isLoading) return;
+
     setState(() {
       _isLoading = true;
     });
 
     try {
       final dio = DioService.instance;
-      final response = await dio.get('/members/me/cash-history');
+      final response = await dio.get(
+        '/members/me/cash-history',
+        queryParameters: {
+          'type': _currentType,
+          'page': refresh ? 0 : _currentPage,
+          'size': _pageSize,
+        },
+      );
 
       if (response.data['success']) {
-        final List<dynamic> historyData = response.data['data'];
+        final content = response.data['data']['content'] as List;
+        final totalPages = response.data['data']['totalPages'] as int;
+        
         setState(() {
-          _histories = historyData.map((data) => CashHistory.fromJson(data)).toList();
+          if (refresh) {
+            _histories = content.map((data) => CashHistory.fromJson(data)).toList();
+            _currentPage = 1;
+          } else {
+            _histories.addAll(content.map((data) => CashHistory.fromJson(data)).toList());
+            _currentPage++;
+          }
+          _hasMore = _currentPage < totalPages;
         });
       }
     } catch (e) {
@@ -78,51 +138,82 @@ class _CashHistoryScreenState extends State<CashHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('캐시 내역'),
+        title: const Text('거래 내역'),
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: '전체'),
+            Tab(text: '출금/충전'),
+            Tab(text: '적립내역'),
+          ],
+          labelColor: Colors.black87,
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: Colors.green,
+        ),
       ),
-      body: ListView.builder(
-        itemCount: _histories.length,
-        itemBuilder: (context, index) {
-          final history = _histories[index];
-          return ListTile(
-            leading: Icon(
-              history.type == 'EARN' ? Icons.add_circle : Icons.remove_circle,
-              color: history.type == 'EARN' ? Colors.green : Colors.red,
-            ),
-            title: Text(history.description),
-            subtitle: Text(DateFormat('yyyy-MM-dd HH:mm').format(history.createdAt)),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '${history.type == 'EARN' ? '+' : '-'}${history.amount.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    color: history.type == 'EARN' ? Colors.green : Colors.red,
-                    fontWeight: FontWeight.bold,
+      body: RefreshIndicator(
+        onRefresh: () => _fetchCashHistory(refresh: true),
+        child: _histories.isEmpty && !_isLoading
+          ? const Center(child: Text('거래 내역이 없습니다.'))
+          : ListView.builder(
+              controller: _scrollController,
+              itemCount: _histories.length + (_hasMore ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index == _histories.length) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+
+                final history = _histories[index];
+                final isEarnType = history.type == 'EARN';
+                
+                return ListTile(
+                  leading: Icon(
+                    isEarnType ? Icons.add_circle : Icons.remove_circle,
+                    color: isEarnType ? Colors.green : Colors.red,
                   ),
-                ),
-                Text(
-                  '잔액: ${history.balance.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
+                  title: Text(history.description),
+                  subtitle: Text(DateFormat('yyyy-MM-dd HH:mm').format(history.createdAt)),
+                  trailing: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '${isEarnType ? '+' : '-'}${NumberFormat('#,###').format(history.amount)}',
+                        style: TextStyle(
+                          color: isEarnType ? Colors.green : Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '잔액: ${NumberFormat('#,###').format(history.balance)}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                );
+              },
             ),
-          );
-        },
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 }

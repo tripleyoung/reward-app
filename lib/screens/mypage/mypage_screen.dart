@@ -24,48 +24,56 @@ class _MyPageScreenState extends State<MyPageScreen> {
 
   Future<void> _fetchUserInfo() async {
     try {
+      // 유저 정보는 AuthProvider에서 가져오기
       final authProvider = context.read<AuthProvider>();
       final user = await authProvider.user;
-      final userId = user?.userId;
+      
+      if (user != null) {
+        setState(() {
+          _userNickname = user.nickname;
+        });
+      }
 
-      if (userId != null) {
+      // 포인트는 별도 API로 가져오기
+      try {
         final dio = DioService.instance;
-        final response = await dio.post('/my/point', data: {'userId': userId});
+        final response = await dio.get('/members/me/point');
 
         if (response.data['success']) {
           setState(() {
-            _point = response.data['userPoint'] ?? 0;
-            _userNickname = response.data['userNickname'] ?? '';
+              _point = (response.data['data']['point'] as num?)?.toInt() ?? 0;
           });
         }
+      } catch (e) {
+        print('Error fetching point: $e');
+        setState(() {
+          _point = 0;
+        });
       }
     } catch (e) {
+      print('Error fetching user info: $e');
       setState(() {
-        _point = 0;
         _userNickname = '닉네임을 불러올 수 없음';
+        _point = 0;
       });
     }
   }
 
   Future<void> _handleLogout() async {
-    setState(() => _error = null);
-
     try {
-      final dio = DioService.instance;
-      await dio.post('/auth/logout');
+      final authProvider = context.read<AuthProvider>();
+      await authProvider.logout();
 
       if (mounted) {
-        final authProvider = context.read<AuthProvider>();
-        await authProvider.logout();
-
         final currentLocale = Localizations.localeOf(context).languageCode;
         context.go('/$currentLocale/login');
       }
     } catch (e) {
-      setState(() => _error = "로그아웃 실패");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_error ?? "알 수 없는 오류가 발생했습니다")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('로그아웃 중 오류가 발생했습니다.')),
+        );
+      }
     }
   }
 
@@ -168,11 +176,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                     title: '제휴광고',
                     onTap: () {},
                   ),
-                  _buildMenuItem(
-                    icon: Icons.help,
-                    title: '문의하기',
-                    onTap: () {},
-                  ),
+                  const Divider(height: 1),
                   _buildMenuItem(
                     icon: Icons.logout,
                     title: '로그아웃',

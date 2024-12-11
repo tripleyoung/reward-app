@@ -59,7 +59,7 @@ class HomeLayout extends StatelessWidget {
                               _buildMenuItem(
                                 context: context,
                                 icon: Icons.description,
-                                label: '포인트 내역',
+                                label: '거래 내역',
                                 onTap: () => context.go('/$currentLocale/cash-history'),
                               ),
                               _buildMenuItem(
@@ -146,7 +146,7 @@ class HomeLayout extends StatelessWidget {
                       _buildBottomNavItem(
                         context: context,
                         icon: Icons.description,
-                        label: '포인트 내역',
+                        label: '거래 내역',
                         onTap: () => context.go('/$currentLocale/cash-history'),
                       ),
                       _buildBottomNavItem(
