@@ -22,13 +22,15 @@ class CashHistory {
   });
 
   factory CashHistory.fromJson(Map<String, dynamic> json) {
+    debugPrint('Parsing JSON: $json');
+    
     return CashHistory(
       id: json['id'],
-      amount: json['amount'].toDouble(),
+      amount: (json['amount'] ?? 0).toDouble(),
       type: json['type'],
       description: json['description'],
-      createdAt: DateTime.parse(json['createdAt']),
-      balance: json['balance'].toDouble(),
+      createdAt: DateTime.parse(json['timestamp']),
+      balance: (json['balance'] ?? 0).toDouble(),
     );
   }
 }
@@ -44,7 +46,7 @@ class _CashHistoryScreenState extends State<CashHistoryScreen> with SingleTicker
   late TabController _tabController;
   final ScrollController _scrollController = ScrollController();
   List<CashHistory> _histories = [];
-  bool _isLoading = true;
+  bool _isLoading = false;
   bool _hasMore = true;
   int _currentPage = 0;
   String _currentType = 'ALL';
@@ -56,24 +58,19 @@ class _CashHistoryScreenState extends State<CashHistoryScreen> with SingleTicker
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(_handleTabChange);
     _scrollController.addListener(_handleScroll);
-    _fetchCashHistory(refresh: true);
+    
+    Future.microtask(() {
+      if (mounted) {
+        _fetchCashHistory(refresh: true);
+      }
+    });
   }
 
   void _handleTabChange() {
     if (!_tabController.indexIsChanging) return;
     
     setState(() {
-      switch (_tabController.index) {
-        case 0:
-          _currentType = 'ALL';
-          break;
-        case 1:
-          _currentType = 'PAYMENT';
-          break;
-        case 2:
-          _currentType = 'EARN';
-          break;
-      }
+      _setTypeFromTabIndex(_tabController.index);
       _histories = [];
       _currentPage = 0;
       _hasMore = true;
@@ -81,6 +78,22 @@ class _CashHistoryScreenState extends State<CashHistoryScreen> with SingleTicker
     });
     
     _fetchCashHistory(refresh: true);
+  }
+
+  void _setTypeFromTabIndex(int index) {
+    switch (index) {
+      case 0:
+        _currentType = 'ALL';
+        break;
+      case 1:
+        _currentType = 'WITHDRAWAL';
+        break;
+      case 2:
+        _currentType = 'EARN';
+        break;
+      default:
+        _currentType = 'ALL';
+    }
   }
 
   void _handleScroll() {
@@ -94,6 +107,8 @@ class _CashHistoryScreenState extends State<CashHistoryScreen> with SingleTicker
   Future<void> _fetchCashHistory({required bool refresh}) async {
     if (_isLoading) return;
 
+    debugPrint('Fetching cash history: type=$_currentType, page=${refresh ? 0 : _currentPage}');
+
     setState(() {
       _isLoading = true;
     });
@@ -106,33 +121,50 @@ class _CashHistoryScreenState extends State<CashHistoryScreen> with SingleTicker
           'type': _currentType,
           'page': refresh ? 0 : _currentPage,
           'size': _pageSize,
+          'sort': 'transactionDate,desc',
         },
       );
 
-      if (response.data['success']) {
-        final content = response.data['data']['content'] as List;
-        final totalPages = response.data['data']['totalPages'] as int;
+      debugPrint('Response received: ${response.data}');
+
+      if (response.data['success'] == true) {
+        final data = response.data['data'];
+        if (data == null) {
+          throw Exception('No data received from server');
+        }
+
+        final content = data['content'] as List;
+        final totalPages = data['totalPages'] as int;
         
-        setState(() {
-          if (refresh) {
-            _histories = content.map((data) => CashHistory.fromJson(data)).toList();
-            _currentPage = 1;
-          } else {
-            _histories.addAll(content.map((data) => CashHistory.fromJson(data)).toList());
-            _currentPage++;
-          }
-          _hasMore = _currentPage < totalPages;
-        });
+        if (mounted) {
+          setState(() {
+            if (refresh) {
+              _histories = content.map((data) => CashHistory.fromJson(data)).toList();
+              _currentPage = 1;
+            } else {
+              _histories.addAll(content.map((data) => CashHistory.fromJson(data)).toList());
+              _currentPage++;
+            }
+            _hasMore = _currentPage < totalPages;
+            _isLoading = false;
+          });
+        }
+      } else {
+        throw Exception(response.data['message'] ?? '거래 내역을 불러오는데 실패했습니다.');
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('Error fetching cash history: $e');
+      debugPrint('Error fetching cash history: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() {
+          _isLoading = false;
+        });
       }
-      // TODO: Show error message
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 
@@ -158,7 +190,9 @@ class _CashHistoryScreenState extends State<CashHistoryScreen> with SingleTicker
       ),
       body: RefreshIndicator(
         onRefresh: () => _fetchCashHistory(refresh: true),
-        child: _histories.isEmpty && !_isLoading
+        child: _isLoading && _histories.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : _histories.isEmpty
           ? const Center(child: Text('거래 내역이 없습니다.'))
           : ListView.builder(
               controller: _scrollController,
@@ -174,12 +208,12 @@ class _CashHistoryScreenState extends State<CashHistoryScreen> with SingleTicker
                 }
 
                 final history = _histories[index];
-                final isEarnType = history.type == 'EARN';
+                final isPositive = history.amount > 0;  // 금액의 부호로 판단
                 
                 return ListTile(
                   leading: Icon(
-                    isEarnType ? Icons.add_circle : Icons.remove_circle,
-                    color: isEarnType ? Colors.green : Colors.red,
+                    isPositive ? Icons.add_circle : Icons.remove_circle,
+                    color: isPositive ? Colors.green : Colors.red,
                   ),
                   title: Text(history.description),
                   subtitle: Text(DateFormat('yyyy-MM-dd HH:mm').format(history.createdAt)),
@@ -188,9 +222,9 @@ class _CashHistoryScreenState extends State<CashHistoryScreen> with SingleTicker
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        '${isEarnType ? '+' : '-'}${NumberFormat('#,###').format(history.amount)}',
+                        NumberFormat('+#,###;-#,###').format(history.amount),
                         style: TextStyle(
-                          color: isEarnType ? Colors.green : Colors.red,
+                          color: isPositive ? Colors.green : Colors.red,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
