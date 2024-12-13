@@ -59,4 +59,8 @@ class AppConfig {
   static String get rewardAppUrl => _environment == Environment.prod
       ? 'https://app.reward-factory.shop'
       : 'http://localhost:46151';
+
+  static String get landingPageUrl => _environment == Environment.prod
+      ? 'https://reward-factory.shop'
+      : 'http://localhost:3000';  // Next.js 기본 포트
 }

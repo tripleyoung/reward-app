@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/dio_service.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../config/app_config.dart';
 
 class MyPageScreen extends StatefulWidget {
   const MyPageScreen({super.key});
@@ -74,6 +76,22 @@ class _MyPageScreenState extends State<MyPageScreen> {
           const SnackBar(content: Text('로그아웃 중 오류가 발생했습니다.')),
         );
       }
+    }
+  }
+
+  void _openNotice() async {
+    final currentLocale = Localizations.localeOf(context).languageCode;
+    final url = Uri.parse('${AppConfig.landingPageUrl}/$currentLocale/notice');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  void _openPartnership() async {
+    final currentLocale = Localizations.localeOf(context).languageCode;
+    final url = Uri.parse('${AppConfig.landingPageUrl}/$currentLocale/partnership');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
     }
   }
 
@@ -169,12 +187,12 @@ class _MyPageScreenState extends State<MyPageScreen> {
                   _buildMenuItem(
                     icon: Icons.article,
                     title: '공지사항',
-                    onTap: () {},
+                    onTap: _openNotice,
                   ),
                   _buildMenuItem(
                     icon: Icons.people,
                     title: '제휴광고',
-                    onTap: () {},
+                    onTap: _openPartnership,
                   ),
                   const Divider(height: 1),
                   _buildMenuItem(
