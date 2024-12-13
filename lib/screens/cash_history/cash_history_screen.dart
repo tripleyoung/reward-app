@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 class CashHistory {
   final int id;
   final double amount;
-  final String type;
+final String type;
   final String description;
   final DateTime createdAt;
   final double balance;
